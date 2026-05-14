@@ -84,13 +84,6 @@ export default async function handler() {
       try {
         const breakdown = await runPostTradeBreakdown(trade, anthropicKey);
 
-        // Push to Notion
-        if (notionToken && notionTradeDb) {
-          await pushToNotion(notionToken, notionTradeDb,
-            `CLOSED: ${trade.instrument} ${trade.currentUnits > 0 ? 'Long' : 'Short'} — Post-Trade`,
-            breakdown);
-        }
-
         // Push to Google Sheets
         if (googleEmail && googleKey && sheetId) {
           await pushToSheets(trade, googleEmail, googleKey, sheetId);
