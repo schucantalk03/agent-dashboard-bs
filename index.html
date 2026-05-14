@@ -337,10 +337,6 @@
       <input type="text" id="oandaAccountId" placeholder="101-001-XXXXXXX-001"/>
     </div>
     <div>
-      <label>NOTION TRADE LOG DB ID</label>
-      <input type="text" id="notionTradeDb" placeholder="32-char page ID"/>
-    </div>
-    <div>
       <label>NOTION TRADING LESSONS DB ID</label>
       <input type="text" id="notionLessonsDb" placeholder="32-char page ID"/>
     </div>
@@ -473,7 +469,6 @@ function saveKeys() {
   localStorage.setItem('agentNotionKbDb',       document.getElementById('notionKbDb').value.trim());
   localStorage.setItem('agentOandaToken',       document.getElementById('oandaToken').value.trim());
   localStorage.setItem('agentOandaAccountId',   document.getElementById('oandaAccountId').value.trim());
-  localStorage.setItem('agentNotionTradeDb',    document.getElementById('notionTradeDb').value.trim());
   localStorage.setItem('agentNotionLessonsDb',  document.getElementById('notionLessonsDb').value.trim());
   const badge = document.getElementById('savedBadge');
   badge.classList.add('show');
@@ -488,7 +483,6 @@ function loadKeys() {
     notionKbDb:      'agentNotionKbDb',
     oandaToken:      'agentOandaToken',
     oandaAccountId:  'agentOandaAccountId',
-    notionTradeDb:   'agentNotionTradeDb',
     notionLessonsDb: 'agentNotionLessonsDb',
   };
   for (const [id, key] of Object.entries(fields)) {
@@ -1026,12 +1020,6 @@ Time: ${new Date().toLocaleString()}`
     // Show in trade log
     addTradeLog(result);
 
-    // Push to Notion
-    const dbId = getKey('agentNotionTradeDb');
-    if (dbId) {
-      const title = `${trade.instrument} ${dir} @ ${parseFloat(trade.price).toFixed(5)}`;
-      await pushToNotion(dbId, title, result, 'Pre-Trade Analysis');
-    }
   } catch(e) {
     addTradeLog('⚠ Analysis failed: ' + e.message);
   }
