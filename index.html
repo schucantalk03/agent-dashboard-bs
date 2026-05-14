@@ -328,14 +328,32 @@
       <label>NOTION KNOWLEDGE BASE DB ID</label>
       <input type="text" id="notionKbDb" placeholder="32-char page ID"/>
     </div>
+    <div>
+      <label>OANDA API TOKEN</label>
+      <input type="password" id="oandaToken" placeholder="Your OANDA personal access token"/>
+    </div>
+    <div>
+      <label>OANDA ACCOUNT ID</label>
+      <input type="text" id="oandaAccountId" placeholder="101-001-XXXXXXX-001"/>
+    </div>
+    <div>
+      <label>NOTION TRADE LOG DB ID</label>
+      <input type="text" id="notionTradeDb" placeholder="32-char page ID"/>
+    </div>
+    <div>
+      <label>NOTION TRADING LESSONS DB ID</label>
+      <input type="text" id="notionLessonsDb" placeholder="32-char page ID"/>
+    </div>
     <button class="save-btn" onclick="saveKeys()">Save Keys Locally (browser only)</button>
     <div class="saved-badge" id="savedBadge">✓ Saved to localStorage</div>
   </div>
 
   <!-- TABS -->
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('research')">🔬 Research Agent</button>
-    <button class="tab" onclick="switchTab('synth')">📖 Content Synthesis</button>
+    <button class="tab active" onclick="switchTab('research')">🔬 Research</button>
+    <button class="tab" onclick="switchTab('synth')">📖 Synthesis</button>
+    <button class="tab" onclick="switchTab('tutor')">🎓 Trading Tutor</button>
+    <button class="tab" onclick="switchTab('trades')">📊 Trade Analyzer</button>
     <button class="tab" onclick="switchTab('history')">📋 History</button>
   </div>
 
@@ -449,10 +467,14 @@ let synthArticleUrl = '';
 // KEYS
 // ══════════════════════════════════════════════
 function saveKeys() {
-  localStorage.setItem('agentAnthropicKey',   document.getElementById('anthropicKey').value.trim());
-  localStorage.setItem('agentNotionToken',     document.getElementById('notionToken').value.trim());
-  localStorage.setItem('agentNotionResearchDb',document.getElementById('notionResearchDb').value.trim());
-  localStorage.setItem('agentNotionKbDb',      document.getElementById('notionKbDb').value.trim());
+  localStorage.setItem('agentAnthropicKey',    document.getElementById('anthropicKey').value.trim());
+  localStorage.setItem('agentNotionToken',      document.getElementById('notionToken').value.trim());
+  localStorage.setItem('agentNotionResearchDb', document.getElementById('notionResearchDb').value.trim());
+  localStorage.setItem('agentNotionKbDb',       document.getElementById('notionKbDb').value.trim());
+  localStorage.setItem('agentOandaToken',       document.getElementById('oandaToken').value.trim());
+  localStorage.setItem('agentOandaAccountId',   document.getElementById('oandaAccountId').value.trim());
+  localStorage.setItem('agentNotionTradeDb',    document.getElementById('notionTradeDb').value.trim());
+  localStorage.setItem('agentNotionLessonsDb',  document.getElementById('notionLessonsDb').value.trim());
   const badge = document.getElementById('savedBadge');
   badge.classList.add('show');
   setTimeout(() => badge.classList.remove('show'), 2500);
@@ -460,10 +482,14 @@ function saveKeys() {
 
 function loadKeys() {
   const fields = {
-    anthropicKey:   'agentAnthropicKey',
-    notionToken:    'agentNotionToken',
+    anthropicKey:    'agentAnthropicKey',
+    notionToken:     'agentNotionToken',
     notionResearchDb:'agentNotionResearchDb',
-    notionKbDb:     'agentNotionKbDb',
+    notionKbDb:      'agentNotionKbDb',
+    oandaToken:      'agentOandaToken',
+    oandaAccountId:  'agentOandaAccountId',
+    notionTradeDb:   'agentNotionTradeDb',
+    notionLessonsDb: 'agentNotionLessonsDb',
   };
   for (const [id, key] of Object.entries(fields)) {
     const el = document.getElementById(id);
@@ -478,12 +504,13 @@ function getKey(k) { return localStorage.getItem(k) || ''; }
 // ══════════════════════════════════════════════
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach((t,i) => {
-    const names = ['research','synth','history'];
+    const names = ['research','synth','tutor','trades','history'];
     t.classList.toggle('active', names[i] === name);
   });
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + name).classList.add('active');
   if (name === 'history') renderHistory();
+  if (name === 'trades') initTradeMonitor();
 }
 
 // ══════════════════════════════════════════════
@@ -862,6 +889,482 @@ function copyOutput(id) {
 // INIT
 // ══════════════════════════════════════════════
 loadKeys();
+
+// ══════════════════════════════════════════════
+// OANDA API
+// ══════════════════════════════════════════════
+async function oandaFetch(path) {
+  const token     = getKey('agentOandaToken');
+  const accountId = getKey('agentOandaAccountId');
+  if (!token || !accountId) throw new Error('OANDA credentials not saved.');
+
+  const res = await fetch('/.netlify/functions/oanda-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, accountId, path }),
+  });
+  if (!res.ok) throw new Error('OANDA fetch failed');
+  return res.json();
+}
+
+// ══════════════════════════════════════════════
+// TRADE MONITOR (polls OANDA every 5 min)
+// ══════════════════════════════════════════════
+let tradeMonitorInterval = null;
+let knownOpenTrades = {};
+let knownClosedTrades = new Set();
+
+async function initTradeMonitor() {
+  updateMonitorStatus('Connecting to OANDA...');
+  try {
+    await pollOanda();
+    updateMonitorStatus('Live · polling every 5 min');
+    if (tradeMonitorInterval) clearInterval(tradeMonitorInterval);
+    tradeMonitorInterval = setInterval(pollOanda, 5 * 60 * 1000);
+  } catch(e) {
+    updateMonitorStatus('⚠ ' + e.message);
+  }
+}
+
+function updateMonitorStatus(msg) {
+  const el = document.getElementById('monitorStatus');
+  if (el) el.textContent = msg;
+}
+
+async function pollOanda() {
+  // Fetch open trades
+  const openData = await oandaFetch('/openTrades');
+  const trades = openData.trades || [];
+
+  // Detect NEW open trades
+  for (const trade of trades) {
+    if (!knownOpenTrades[trade.id]) {
+      knownOpenTrades[trade.id] = trade;
+      await analyzeNewTrade(trade);
+    }
+  }
+
+  // Detect CLOSED trades (were open, now gone)
+  const openIds = new Set(trades.map(t => t.id));
+  for (const [id, trade] of Object.entries(knownOpenTrades)) {
+    if (!openIds.has(id) && !knownClosedTrades.has(id)) {
+      knownClosedTrades.add(id);
+      delete knownOpenTrades[id];
+      await analyzeClosedTrade(trade);
+    }
+  }
+
+  // Refresh trade list UI
+  renderOpenTrades(trades);
+}
+
+function renderOpenTrades(trades) {
+  const el = document.getElementById('openTradesList');
+  if (!el) return;
+  if (!trades.length) {
+    el.innerHTML = '<div class="no-history">No open trades detected on OANDA demo account.</div>';
+    return;
+  }
+  el.innerHTML = trades.map(t => {
+    const dir = parseInt(t.currentUnits) > 0 ? 'LONG' : 'SHORT';
+    const dirColor = dir === 'LONG' ? 'var(--accent)' : 'var(--danger)';
+    const pl = parseFloat(t.unrealizedPL || 0).toFixed(2);
+    const plColor = pl >= 0 ? 'var(--accent)' : 'var(--danger)';
+    return `
+    <div class="history-item">
+      <div>
+        <div class="h-query">${t.instrument} · <span style="color:${dirColor}">${dir}</span></div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px">
+          Entry: ${parseFloat(t.price).toFixed(5)} · Units: ${Math.abs(t.currentUnits)}
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:var(--mono);font-size:13px;color:${plColor}">${pl >= 0 ? '+' : ''}${pl}</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px">Unrealized P&L</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function analyzeNewTrade(trade) {
+  const dir = parseInt(trade.currentUnits) > 0 ? 'Long' : 'Short';
+  const units = Math.abs(trade.currentUnits);
+  addTradeLog(`🟢 New trade detected: ${trade.instrument} ${dir} · ${units} units @ ${parseFloat(trade.price).toFixed(5)} — running analysis...`);
+
+  const system = `You are an expert FOREX trading coach analyzing a paper trade for a beginner-intermediate EUR/USD trader.
+Be specific, educational, and constructive. Format your response as:
+
+## Pre-Trade Analysis
+**Instrument:** | **Direction:** | **Entry:** | **Units:**
+
+## Setup Quality Checklist
+- [ ] Trend alignment (is this trade with or against the trend?)
+- [ ] Key level (is entry near support/resistance?)
+- [ ] Risk assessment (position size appropriate for demo?)
+- [ ] Session timing (is this a good trading session for EUR/USD?)
+
+## What To Watch
+Key levels to monitor while this trade is open.
+
+## Suggested Stop Loss & Take Profit
+Based on typical EUR/USD price action.
+
+## Coaching Note
+One key lesson this trade setup teaches.`;
+
+  try {
+    const result = await callClaude([{
+      role: 'user',
+      content: `Analyze this new paper trade:
+Instrument: ${trade.instrument}
+Direction: ${dir}
+Entry Price: ${trade.price}
+Units: ${units}
+Time: ${new Date().toLocaleString()}`
+    }], system);
+
+    // Show in trade log
+    addTradeLog(result);
+
+    // Push to Notion
+    const dbId = getKey('agentNotionTradeDb');
+    if (dbId) {
+      const title = `${trade.instrument} ${dir} @ ${parseFloat(trade.price).toFixed(5)}`;
+      await pushToNotion(dbId, title, result, 'Pre-Trade Analysis');
+    }
+  } catch(e) {
+    addTradeLog('⚠ Analysis failed: ' + e.message);
+  }
+}
+
+async function analyzeClosedTrade(trade) {
+  const dir = parseInt(trade.currentUnits) > 0 ? 'Long' : 'Short';
+  addTradeLog(`🔴 Trade closed: ${trade.instrument} — running post-trade breakdown...`);
+
+  const system = `You are an expert FOREX trading coach delivering a post-trade breakdown for a beginner-intermediate EUR/USD paper trader.
+Be honest, specific, and educational. Format your response as:
+
+## Post-Trade Breakdown
+**Instrument:** | **Direction:** | **Entry:** | **Result:**
+
+## What Went Right
+Specific positives about this trade.
+
+## What To Improve
+Honest critique and specific improvements for next time.
+
+## Key Lesson
+The single most important thing to take away from this trade.
+
+## Trade Score
+Grade this trade A/B/C/D based on execution quality (not outcome). Explain the grade.`;
+
+  try {
+    const result = await callClaude([{
+      role: 'user',
+      content: `Analyze this closed paper trade:
+Instrument: ${trade.instrument}
+Direction: ${dir}
+Entry Price: ${trade.price}
+Unrealized P&L at close: ${trade.unrealizedPL || 'N/A'}
+Time open: ${new Date(trade.openTime).toLocaleString()}
+Closed: ${new Date().toLocaleString()}`
+    }], system);
+
+    addTradeLog(result);
+
+    // Push to Notion
+    const dbId = getKey('agentNotionTradeDb');
+    if (dbId) {
+      const title = `CLOSED: ${trade.instrument} ${dir} — Post-Trade`;
+      await pushToNotion(dbId, title, result, 'Post-Trade Breakdown');
+    }
+  } catch(e) {
+    addTradeLog('⚠ Breakdown failed: ' + e.message);
+  }
+}
+
+function addTradeLog(text) {
+  const el = document.getElementById('tradeLogBody');
+  if (!el) return;
+  const entry = document.createElement('div');
+  entry.style.cssText = 'border-bottom:1px solid var(--border);padding:14px 0;';
+  entry.innerHTML = renderMd(text);
+  el.prepend(entry);
+}
+
+// ══════════════════════════════════════════════
+// TRADING TUTOR
+// ══════════════════════════════════════════════
+async function runDailyLesson() {
+  const btn    = document.getElementById('lessonBtn');
+  const output = document.getElementById('lessonOutput');
+  const body   = document.getElementById('lessonBody');
+  const dot    = document.getElementById('lessonDot');
+  const status = document.getElementById('lessonStatus');
+  const notionR= document.getElementById('lessonNotionResult');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating lesson...';
+  output.classList.add('show');
+  notionR.classList.remove('show');
+  dot.className = 'status-dot dot-thinking';
+  status.textContent = 'Building your lesson...';
+  body.innerHTML = '';
+
+  const topics = [
+    'Support and Resistance levels on EUR/USD',
+    'Reading candlestick patterns for scalping',
+    'Understanding the London and New York session overlap',
+    'Using RSI for entry timing on EUR/USD',
+    'Moving averages: EMA vs SMA for swing trading',
+    'Fibonacci retracements in FOREX',
+    'Risk/reward ratios and position sizing for demo trading',
+    'Understanding bid/ask spread and its impact on scalping',
+    'Trend identification using higher timeframes',
+    'News trading: how economic events move EUR/USD',
+    'Understanding MACD for momentum trading',
+    'Bollinger Bands for volatility-based entries',
+  ];
+  const topic = topics[Math.floor(Math.random() * topics.length)];
+
+  const system = `You are an expert FOREX trading tutor teaching a beginner-intermediate student who understands charts and a few strategies. They are paper trading EUR/USD and learning swing and scalp trading.
+
+Deliver an engaging, practical lesson. Format exactly as:
+
+## Today's Lesson: {topic}
+
+### What It Is
+Clear explanation in plain language (2-3 paragraphs).
+
+### Why It Matters for EUR/USD
+Specific application to this pair.
+
+### How To Use It
+Step-by-step practical guide with specific examples.
+
+### Common Mistakes
+3 mistakes beginners make with this concept.
+
+### Real Example
+Walk through a specific EUR/USD scenario using this concept.
+
+---
+
+## Quiz
+Test your understanding with 3 questions:
+
+**Q1:** (question)
+**Q2:** (question)  
+**Q3:** (question)
+
+*Answers at the bottom*
+
+---
+
+**A1:** (answer)
+**A2:** (answer)
+**A3:** (answer)`;
+
+  try {
+    const result = await callClaude([{
+      role: 'user',
+      content: `Generate today's trading lesson on: ${topic}`
+    }], system);
+
+    body.innerHTML = renderMd(result);
+    dot.className = 'status-dot dot-done';
+    status.textContent = 'Complete';
+    saveToHistory('tutor', 'Daily Lesson: ' + topic, result);
+
+    const dbId = getKey('agentNotionLessonsDb');
+    if (dbId) {
+      status.textContent = 'Saving to Notion...';
+      try {
+        await pushToNotion(dbId, 'Daily Lesson: ' + topic, result, 'Daily Lesson');
+        notionR.textContent = '✓ Saved to Notion Trading Lessons';
+        notionR.classList.add('show');
+        status.textContent = 'Complete · Saved to Notion';
+      } catch(e) {
+        notionR.textContent = '⚠ Notion failed: ' + e.message;
+        notionR.classList.add('show');
+      }
+    }
+  } catch(e) {
+    body.innerHTML = '⚠ Error: ' + e.message;
+    dot.className = 'status-dot dot-error';
+    status.textContent = 'Error';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<span>Generate Daily Lesson</span>';
+}
+
+async function runAskTutor() {
+  const q      = document.getElementById('tutorQ').value.trim();
+  if (!q) return;
+  const btn    = document.getElementById('askBtn');
+  const output = document.getElementById('askOutput');
+  const body   = document.getElementById('askBody');
+  const dot    = document.getElementById('askDot');
+  const status = document.getElementById('askStatus');
+  const notionR= document.getElementById('askNotionResult');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Thinking...';
+  output.classList.add('show');
+  notionR.classList.remove('show');
+  dot.className = 'status-dot dot-thinking';
+  status.textContent = 'Answering...';
+  body.innerHTML = '';
+
+  const system = `You are an expert FOREX trading tutor. Your student is a beginner-intermediate EUR/USD trader learning swing and scalp trading. They understand basic charts and a few strategies but are still developing consistency.
+
+Answer their question thoroughly and practically. Always:
+- Use clear, jargon-free language (explain terms when you use them)
+- Give specific EUR/USD examples where possible
+- Include a practical takeaway they can apply immediately
+- End with a follow-up question to deepen their thinking`;
+
+  try {
+    const result = await callClaude([{
+      role: 'user',
+      content: q
+    }], system);
+
+    body.innerHTML = renderMd(result);
+    dot.className = 'status-dot dot-done';
+    status.textContent = 'Complete';
+    saveToHistory('tutor', q, result);
+
+    const dbId = getKey('agentNotionLessonsDb');
+    if (dbId) {
+      try {
+        await pushToNotion(dbId, 'Q&A: ' + q.slice(0,80), result, 'Q&A');
+        notionR.textContent = '✓ Saved to Notion Trading Lessons';
+        notionR.classList.add('show');
+      } catch(e) {
+        notionR.textContent = '⚠ Notion failed: ' + e.message;
+        notionR.classList.add('show');
+      }
+    }
+  } catch(e) {
+    body.innerHTML = '⚠ Error: ' + e.message;
+    dot.className = 'status-dot dot-error';
+    status.textContent = 'Error';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<span>Ask Tutor</span>';
+}
 </script>
+
+  <!-- ══ TUTOR PANEL ══ -->
+  <div class="panel" id="panel-tutor">
+    <!-- Daily Lesson -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-research" style="background:rgba(245,166,35,.1)">🎓</div>
+        <div>
+          <div class="card-title">Daily Trading Lesson</div>
+          <div class="card-sub">#13 · Structured lesson + quiz → Notion Trading Lessons</div>
+        </div>
+      </div>
+      <p style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:16px">
+        Generate a new lesson covering TA, price action, or fundamentals — with a quiz at the end.
+      </p>
+      <div class="row">
+        <button class="run-btn btn-research" id="lessonBtn" onclick="runDailyLesson()" style="background:var(--amber);color:var(--bg)">
+          <span>Generate Daily Lesson</span>
+        </button>
+        <label class="notion-toggle">
+          <input type="checkbox" id="lessonNotion" checked/>
+          Save to Notion
+        </label>
+      </div>
+      <div class="output" id="lessonOutput">
+        <div class="output-bar">
+          <span><span class="status-dot" id="lessonDot"></span><span id="lessonStatus"></span></span>
+          <button class="copy-btn" onclick="copyOutput('lessonBody')">Copy</button>
+        </div>
+        <div class="output-body" id="lessonBody"></div>
+        <div class="notion-result" id="lessonNotionResult"></div>
+      </div>
+    </div>
+
+    <!-- Ask Anything -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:rgba(245,166,35,.1)">💬</div>
+        <div>
+          <div class="card-title">Ask The Tutor</div>
+          <div class="card-sub">#13 · Any trading question → in-depth answer → Notion</div>
+        </div>
+      </div>
+      <textarea id="tutorQ" rows="3" placeholder="e.g. What's the difference between scalping and swing trading EUR/USD?"></textarea>
+      <div class="row">
+        <button class="run-btn" id="askBtn" onclick="runAskTutor()" style="background:var(--amber);color:var(--bg)">
+          <span>Ask Tutor</span>
+        </button>
+        <label class="notion-toggle">
+          <input type="checkbox" id="askNotion" checked/>
+          Save to Notion
+        </label>
+      </div>
+      <div class="output" id="askOutput">
+        <div class="output-bar">
+          <span><span class="status-dot" id="askDot"></span><span id="askStatus"></span></span>
+          <button class="copy-btn" onclick="copyOutput('askBody')">Copy</button>
+        </div>
+        <div class="output-body" id="askBody"></div>
+        <div class="notion-result" id="askNotionResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TRADES PANEL ══ -->
+  <div class="panel" id="panel-trades">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:rgba(0,229,160,.1)">📊</div>
+        <div>
+          <div class="card-title">Trade Analyzer · OANDA Demo</div>
+          <div class="card-sub">#2 · Auto-detects trades → pre-trade checklist + post-trade breakdown → Notion</div>
+        </div>
+      </div>
+
+      <!-- Monitor status -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-family:var(--mono);font-size:12px;color:var(--muted)">
+          <span class="status-dot dot-thinking" style="display:inline-block;margin-right:6px"></span>
+          <span id="monitorStatus">Click the Trades tab to connect</span>
+        </div>
+        <button class="copy-btn" onclick="initTradeMonitor()" style="color:var(--accent);border-color:var(--accent)">↺ Reconnect</button>
+      </div>
+
+      <!-- Open trades -->
+      <div style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">
+        Open Positions
+      </div>
+      <div id="openTradesList">
+        <div class="no-history">Connecting to OANDA...</div>
+      </div>
+    </div>
+
+    <!-- Trade analysis log -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-header">
+        <div class="card-icon" style="background:rgba(0,229,160,.1)">📝</div>
+        <div>
+          <div class="card-title">Analysis Log</div>
+          <div class="card-sub">Auto-generated pre & post trade breakdowns</div>
+        </div>
+      </div>
+      <div id="tradeLogBody" style="max-height:500px;overflow-y:auto;font-family:var(--mono);font-size:13px;line-height:1.7">
+        <div class="no-history">Analysis will appear here automatically when trades are detected.</div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
