@@ -584,23 +584,15 @@ function chunkToBlocks(text) {
 // ARTICLE FETCH (via allorigins proxy)
 // ══════════════════════════════════════════════
 async function fetchArticle(url) {
-  const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-  const res = await fetch(proxy);
+  const res = await fetch('/.netlify/functions/fetch-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
   if (!res.ok) throw new Error('Could not fetch article. The site may block scrapers.');
-  const html = await res.text();
-  // Strip tags, collapse whitespace
-  const text = html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/\s{3,}/g, '\n\n')
-    .trim()
-    .slice(0, 12000); // keep first ~12k chars for Claude
-  return text;
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.text;
 }
 
 // ══════════════════════════════════════════════
