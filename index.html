@@ -1039,6 +1039,8 @@ Time: ${new Date().toLocaleString()}`
 
 async function analyzeClosedTrade(trade) {
   const dir = parseInt(trade.currentUnits) > 0 ? 'Long' : 'Short';
+  const pl  = parseFloat(trade.unrealizedPL || 0);
+  const winLoss = pl >= 0 ? 'Win' : 'Loss';
   addTradeLog(`🔴 Trade closed: ${trade.instrument} — running post-trade breakdown...`);
 
   const system = `You are an expert FOREX trading coach delivering a post-trade breakdown for a beginner-intermediate EUR/USD paper trader.
@@ -1066,19 +1068,49 @@ Grade this trade A/B/C/D based on execution quality (not outcome). Explain the g
 Instrument: ${trade.instrument}
 Direction: ${dir}
 Entry Price: ${trade.price}
-Unrealized P&L at close: ${trade.unrealizedPL || 'N/A'}
+P&L at close: ${pl}
 Time open: ${new Date(trade.openTime).toLocaleString()}
 Closed: ${new Date().toLocaleString()}`
     }], system);
 
     addTradeLog(result);
 
-    // Push to Notion
+    // ── Push to Google Sheets ──
+    try {
+      const closeDate = new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+      const tradeData = {
+        symbol:     trade.instrument,
+        date:       closeDate,
+        direction:  dir,
+        entryPrice: parseFloat(trade.price).toFixed(5),
+        closePrice: '', // OANDA doesn't return close price on open trade object; left for formula
+        winLoss,
+        size:       Math.abs(parseInt(trade.currentUnits)),
+        fee:        0,
+        profit:     pl.toFixed(2),
+      };
+      const sheetRes = await fetch('/.netlify/functions/sheets-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tradeData }),
+      });
+      const sheetData = await sheetRes.json();
+      if (sheetData.success) {
+        addTradeLog(`✓ Trade logged to Google Sheets (row ${sheetData.row})`);
+      } else {
+        addTradeLog(`⚠ Sheets log failed: ${sheetData.error}`);
+      }
+    } catch(e) {
+      addTradeLog('⚠ Sheets log error: ' + e.message);
+    }
+
+    // ── Also push breakdown to Notion ──
     const dbId = getKey('agentNotionTradeDb');
     if (dbId) {
       const title = `CLOSED: ${trade.instrument} ${dir} — Post-Trade`;
       await pushToNotion(dbId, title, result, 'Post-Trade Breakdown');
     }
+
   } catch(e) {
     addTradeLog('⚠ Breakdown failed: ' + e.message);
   }
