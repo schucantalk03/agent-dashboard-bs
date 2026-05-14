@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Agent Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:        #0a0a0f;
+    --surface:   #111118;
+    --border:    #1e1e2e;
+    --border-hi: #2e2e4a;
+    --accent:    #00e5a0;
+    --accent2:   #7b61ff;
+    --amber:     #f5a623;
+    --text:      #e2e2f0;
+    --muted:     #6b6b8a;
+    --danger:    #ff5c5c;
+    --mono:      'Space Mono', monospace;
+    --sans:      'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* grid noise overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* ── HEADER ── */
+  header {
+    padding: 40px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 36px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  h1 { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+  h1 span { color: var(--accent); }
+  .version { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  /* ── SETTINGS STRIP ── */
+  .settings {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .settings h2 {
+    grid-column: 1/-1;
+    font-size: 11px; font-family: var(--mono); color: var(--muted);
+    letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px;
+  }
+  label { font-size: 12px; color: var(--muted); font-family: var(--mono); display: block; margin-bottom: 6px; }
+  input[type=text], input[type=password] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input:focus { border-color: var(--accent); }
+  .save-btn {
+    grid-column: 1/-1;
+    background: transparent;
+    border: 1px solid var(--border-hi);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all .2s;
+    text-align: center;
+  }
+  .save-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .saved-badge {
+    display: none; font-size: 11px; font-family: var(--mono);
+    color: var(--accent); text-align: center; margin-top: 6px;
+  }
+  .saved-badge.show { display: block; }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 2px; margin-bottom: 24px; }
+  .tab {
+    padding: 10px 22px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: .06em;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--muted);
+    cursor: pointer; border-radius: 6px; transition: all .2s;
+  }
+  .tab.active { background: var(--surface); color: var(--accent); border-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); border-color: var(--border-hi); }
+
+  /* ── PANELS ── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── AGENT CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .card-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .icon-research { background: rgba(0,229,160,.1); }
+  .icon-synth    { background: rgba(123,97,255,.1); }
+  .card-title { font-size: 16px; font-weight: 800; }
+  .card-sub { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 14px 16px;
+    resize: vertical;
+    outline: none;
+    transition: border-color .2s;
+    line-height: 1.6;
+  }
+  textarea:focus { border-color: var(--accent); }
+
+  .row { display: flex; gap: 12px; margin-top: 14px; align-items: center; }
+
+  .run-btn {
+    padding: 12px 28px;
+    border-radius: 8px;
+    border: none;
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all .2s; letter-spacing: .04em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-research { background: var(--accent); color: var(--bg); }
+  .btn-research:hover { box-shadow: 0 0 20px rgba(0,229,160,.3); }
+  .btn-synth { background: var(--accent2); color: #fff; }
+  .btn-synth:hover { box-shadow: 0 0 20px rgba(123,97,255,.3); }
+  .run-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  .notion-toggle {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    cursor: pointer; margin-left: auto;
+  }
+  .notion-toggle input { accent-color: var(--accent); cursor: pointer; }
+
+  /* ── OUTPUT AREA ── */
+  .output {
+    margin-top: 24px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: none;
+  }
+  .output.show { display: block; }
+  .output-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    display: inline-block; margin-right: 6px;
+  }
+  .dot-thinking { background: var(--amber); animation: pulse 1s infinite; }
+  .dot-done     { background: var(--accent); }
+  .dot-error    { background: var(--danger); }
+  .copy-btn {
+    background: transparent; border: 1px solid var(--border-hi);
+    color: var(--muted); font-family: var(--mono); font-size: 11px;
+    padding: 4px 10px; border-radius: 4px; cursor: pointer; transition: all .2s;
+  }
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .output-body {
+    padding: 20px;
+    font-family: var(--mono); font-size: 13px; line-height: 1.8;
+    color: var(--text); white-space: pre-wrap; word-break: break-word;
+    max-height: 520px; overflow-y: auto;
+  }
+  .notion-result {
+    padding: 10px 20px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11px;
+    color: var(--accent);
+    display: none;
+  }
+  .notion-result.show { display: block; }
+
+  /* markdown-lite rendering */
+  .output-body h2 { color: var(--accent); font-size: 14px; margin: 16px 0 8px; font-family: var(--sans); font-weight: 800; }
+  .output-body h3 { color: var(--amber); font-size: 13px; margin: 12px 0 6px; font-family: var(--sans); font-weight: 600; }
+  .output-body strong { color: var(--text); font-weight: 700; }
+  .output-body a { color: var(--accent2); text-decoration: none; }
+  .output-body a:hover { text-decoration: underline; }
+  .output-body blockquote {
+    border-left: 3px solid var(--accent2);
+    padding-left: 14px; color: var(--muted); margin: 10px 0;
+  }
+  .output-body hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  /* ── TAKEAWAY PROMPT ── */
+  .takeaway-box {
+    margin-top: 16px;
+    background: rgba(123,97,255,.07);
+    border: 1px solid var(--accent2);
+    border-radius: 8px;
+    padding: 18px;
+    display: none;
+  }
+  .takeaway-box.show { display: block; }
+  .takeaway-box label { color: var(--accent2); font-size: 12px; font-family: var(--mono); margin-bottom: 10px; display: block; }
+  .takeaway-row { display: flex; gap: 10px; margin-top: 10px; }
+  .takeaway-submit {
+    padding: 10px 20px; border-radius: 6px;
+    background: var(--accent2); border: none; color: #fff;
+    font-family: var(--mono); font-size: 12px; cursor: pointer; white-space: nowrap;
+  }
+  .takeaway-submit:hover { opacity: .85; }
+
+  /* ── HISTORY ── */
+  .history-section { margin-top: 36px; }
+  .history-title {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    letter-spacing: .12em; text-transform: uppercase; margin-bottom: 14px;
+  }
+  .history-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 18px; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; transition: border-color .2s;
+  }
+  .history-item:hover { border-color: var(--border-hi); }
+  .h-query { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 600px; }
+  .h-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); flex-shrink: 0; margin-left: 16px; }
+  .no-history { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+
+  /* spinner */
+  .spinner {
+    display: inline-block; width: 12px; height: 12px;
+    border: 2px solid rgba(0,0,0,.2);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <h1>Agent <span>Dashboard</span></h1>
+    </div>
+    <span class="version">v1.0 · Phase 1</span>
+  </header>
+
+  <!-- SETTINGS -->
+  <div class="settings" id="settingsBox">
+    <h2>⚙ Configuration</h2>
+    <div>
+      <label>ANTHROPIC API KEY</label>
+      <input type="password" id="anthropicKey" placeholder="sk-ant-..."/>
+    </div>
+    <div>
+      <label>NOTION INTEGRATION TOKEN</label>
+      <input type="password" id="notionToken" placeholder="secret_..."/>
+    </div>
+    <div>
+      <label>NOTION RESEARCH DB ID</label>
+      <input type="text" id="notionResearchDb" placeholder="32-char page ID"/>
+    </div>
+    <div>
+      <label>NOTION KNOWLEDGE BASE DB ID</label>
+      <input type="text" id="notionKbDb" placeholder="32-char page ID"/>
+    </div>
+    <button class="save-btn" onclick="saveKeys()">Save Keys Locally (browser only)</button>
+    <div class="saved-badge" id="savedBadge">✓ Saved to localStorage</div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('research')">🔬 Research Agent</button>
+    <button class="tab" onclick="switchTab('synth')">📖 Content Synthesis</button>
+    <button class="tab" onclick="switchTab('history')">📋 History</button>
+  </div>
+
+  <!-- ══ RESEARCH PANEL ══ -->
+  <div class="panel active" id="panel-research">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-research">🔬</div>
+        <div>
+          <div class="card-title">Research Agent</div>
+          <div class="card-sub">#14 · Ask a question → structured report → Notion</div>
+        </div>
+      </div>
+
+      <textarea id="researchQ" rows="4" placeholder="e.g. What is the risk/reward profile of scalping EUR/USD during London open?"></textarea>
+
+      <div class="row">
+        <button class="run-btn btn-research" id="researchBtn" onclick="runResearch()">
+          <span>Run Research</span>
+        </button>
+        <label class="notion-toggle">
+          <input type="checkbox" id="researchNotion" checked/>
+          Save to Notion
+        </label>
+      </div>
+
+      <div class="output" id="researchOutput">
+        <div class="output-bar">
+          <span><span class="status-dot" id="researchDot"></span><span id="researchStatus">Thinking...</span></span>
+          <button class="copy-btn" onclick="copyOutput('researchBody')">Copy</button>
+        </div>
+        <div class="output-body" id="researchBody"></div>
+        <div class="notion-result" id="researchNotionResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SYNTHESIS PANEL ══ -->
+  <div class="panel" id="panel-synth">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-synth">📖</div>
+        <div>
+          <div class="card-title">Content Synthesis Agent</div>
+          <div class="card-sub">#15 · Paste a URL → breakdown + your takeaway → Notion</div>
+        </div>
+      </div>
+
+      <textarea id="synthUrl" rows="2" placeholder="https://..."></textarea>
+
+      <div class="row">
+        <button class="run-btn btn-synth" id="synthBtn" onclick="runSynth()">
+          <span>Synthesize Article</span>
+        </button>
+        <label class="notion-toggle">
+          <input type="checkbox" id="synthNotion" checked/>
+          Save to Notion
+        </label>
+      </div>
+
+      <div class="output" id="synthOutput">
+        <div class="output-bar">
+          <span><span class="status-dot" id="synthDot"></span><span id="synthStatus">Fetching...</span></span>
+          <button class="copy-btn" onclick="copyOutput('synthBody')">Copy</button>
+        </div>
+        <div class="output-body" id="synthBody"></div>
+
+        <!-- Takeaway prompt -->
+        <div class="takeaway-box" id="takeawayBox">
+          <label>✏ YOUR TAKEAWAY — What's your main insight or reaction to this article? Any disagreements?</label>
+          <textarea id="takeawayText" rows="3" placeholder="My main takeaway is..."></textarea>
+          <div class="takeaway-row">
+            <button class="takeaway-submit" onclick="submitTakeaway()">Save Takeaway & Push to Notion</button>
+          </div>
+        </div>
+
+        <div class="notion-result" id="synthNotionResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ HISTORY PANEL ══ -->
+  <div class="panel" id="panel-history">
+    <div class="history-section">
+      <div class="history-title">Research History</div>
+      <div id="researchHistory"></div>
+    </div>
+    <div class="history-section" style="margin-top:28px">
+      <div class="history-title">Synthesis History</div>
+      <div id="synthHistory"></div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let synthRawOutput = '';
+let synthArticleTitle = '';
+let synthArticleUrl = '';
+
+// ══════════════════════════════════════════════
+// KEYS
+// ══════════════════════════════════════════════
+function saveKeys() {
+  localStorage.setItem('agentAnthropicKey',   document.getElementById('anthropicKey').value.trim());
+  localStorage.setItem('agentNotionToken',     document.getElementById('notionToken').value.trim());
+  localStorage.setItem('agentNotionResearchDb',document.getElementById('notionResearchDb').value.trim());
+  localStorage.setItem('agentNotionKbDb',      document.getElementById('notionKbDb').value.trim());
+  const badge = document.getElementById('savedBadge');
+  badge.classList.add('show');
+  setTimeout(() => badge.classList.remove('show'), 2500);
+}
+
+function loadKeys() {
+  const fields = {
+    anthropicKey:   'agentAnthropicKey',
+    notionToken:    'agentNotionToken',
+    notionResearchDb:'agentNotionResearchDb',
+    notionKbDb:     'agentNotionKbDb',
+  };
+  for (const [id, key] of Object.entries(fields)) {
+    const el = document.getElementById(id);
+    if (el) el.value = localStorage.getItem(key) || '';
+  }
+}
+
+function getKey(k) { return localStorage.getItem(k) || ''; }
+
+// ══════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const names = ['research','synth','history'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+// ══════════════════════════════════════════════
+// CLAUDE API CALL
+// ══════════════════════════════════════════════
+async function callClaude(messages, system) {
+  const key = getKey('agentAnthropicKey');
+  if (!key) throw new Error('No Anthropic API key saved. Fill in Settings above.');
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system,
+      messages,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `API error ${res.status}`);
+  }
+  const data = await res.json();
+  return data.content.map(b => b.text || '').join('');
+}
+
+// ══════════════════════════════════════════════
+// NOTION API HELPERS
+// ══════════════════════════════════════════════
+async function notionRequest(path, body) {
+  const token = getKey('agentNotionToken');
+  if (!token) throw new Error('No Notion token saved.');
+  const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.notion.com/v1/' + path), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, body }),
+  });
+  // fallback: direct (works if CORS allows)
+  if (!res.ok) throw new Error('Notion proxy error');
+  return res.json();
+}
+
+// We'll build Notion pages via a small CORS proxy approach.
+// Since direct Notion API calls are blocked by CORS in browsers,
+// we embed a lightweight proxy workaround using a public CORS proxy.
+async function pushToNotion(dbId, title, content, type='research') {
+  const token = getKey('agentNotionToken');
+  if (!token) throw new Error('No Notion token.');
+  if (!dbId)  throw new Error('No Notion database ID for ' + type);
+
+  // Use allorigins as a CORS proxy to reach Notion API
+  const notionUrl = 'https://api.notion.com/v1/pages';
+  const payload = {
+    parent: { database_id: dbId },
+    properties: {
+      Name: { title: [{ text: { content: title } }] },
+      Type: { rich_text: [{ text: { content: type } }] },
+      Date: { rich_text: [{ text: { content: new Date().toLocaleDateString() } }] },
+    },
+    children: chunkToBlocks(content),
+  };
+
+  const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(notionUrl)}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-notion-token': token,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error('Notion push failed: ' + txt.slice(0,120));
+  }
+  return res.json();
+}
+
+function chunkToBlocks(text) {
+  // Convert markdown-lite text to Notion blocks
+  const lines = text.split('\n');
+  const blocks = [];
+  for (const line of lines) {
+    if (line.startsWith('## ')) {
+      blocks.push({ object:'block', type:'heading_2', heading_2:{ rich_text:[{type:'text',text:{content:line.slice(3)}}]}});
+    } else if (line.startsWith('### ')) {
+      blocks.push({ object:'block', type:'heading_3', heading_3:{ rich_text:[{type:'text',text:{content:line.slice(4)}}]}});
+    } else if (line.startsWith('> ')) {
+      blocks.push({ object:'block', type:'quote', quote:{ rich_text:[{type:'text',text:{content:line.slice(2)}}]}});
+    } else if (line.startsWith('- ')) {
+      blocks.push({ object:'block', type:'bulleted_list_item', bulleted_list_item:{ rich_text:[{type:'text',text:{content:line.slice(2)}}]}});
+    } else if (line.trim() === '---') {
+      blocks.push({ object:'block', type:'divider', divider:{}});
+    } else if (line.trim()) {
+      blocks.push({ object:'block', type:'paragraph', paragraph:{ rich_text:[{type:'text',text:{content:line}}]}});
+    }
+    if (blocks.length >= 95) break; // Notion limit per request
+  }
+  return blocks;
+}
+
+// ══════════════════════════════════════════════
+// ARTICLE FETCH (via allorigins proxy)
+// ══════════════════════════════════════════════
+async function fetchArticle(url) {
+  const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+  const res = await fetch(proxy);
+  if (!res.ok) throw new Error('Could not fetch article. The site may block scrapers.');
+  const html = await res.text();
+  // Strip tags, collapse whitespace
+  const text = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s{3,}/g, '\n\n')
+    .trim()
+    .slice(0, 12000); // keep first ~12k chars for Claude
+  return text;
+}
+
+// ══════════════════════════════════════════════
+// RENDER MARKDOWN-LITE
+// ══════════════════════════════════════════════
+function renderMd(text) {
+  return text
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^- (.+)$/gm, '• $1')
+    .replace(/^---$/gm, '<hr/>')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/\n/g, '<br/>');
+}
+
+// ══════════════════════════════════════════════
+// HISTORY
+// ══════════════════════════════════════════════
+function saveToHistory(type, query, output) {
+  const key = 'agentHistory_' + type;
+  const history = JSON.parse(localStorage.getItem(key) || '[]');
+  history.unshift({ query, output, date: new Date().toLocaleString() });
+  localStorage.setItem(key, JSON.stringify(history.slice(0, 30)));
+}
+
+function renderHistory() {
+  ['research','synth'].forEach(type => {
+    const history = JSON.parse(localStorage.getItem('agentHistory_' + type) || '[]');
+    const el = document.getElementById(type + 'History');
+    if (!history.length) { el.innerHTML = '<div class="no-history">No history yet.</div>'; return; }
+    el.innerHTML = history.map(h => `
+      <div class="history-item">
+        <div class="h-query">${h.query}</div>
+        <div class="h-meta">${h.date}</div>
+      </div>`).join('');
+  });
+}
+
+// ══════════════════════════════════════════════
+// RESEARCH AGENT
+// ══════════════════════════════════════════════
+async function runResearch() {
+  const q = document.getElementById('researchQ').value.trim();
+  if (!q) return;
+
+  const btn     = document.getElementById('researchBtn');
+  const output  = document.getElementById('researchOutput');
+  const body    = document.getElementById('researchBody');
+  const dot     = document.getElementById('researchDot');
+  const status  = document.getElementById('researchStatus');
+  const notionR = document.getElementById('researchNotionResult');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Researching...';
+  output.classList.add('show');
+  notionR.classList.remove('show');
+  dot.className = 'status-dot dot-thinking';
+  status.textContent = 'Thinking...';
+  body.innerHTML = '';
+
+  try {
+    const system = `You are a world-class research analyst specializing in trading, markets, and finance.
+When given a research question, produce a deeply structured report in this exact format:
+
+## TL;DR
+3 sentence summary of the key answer.
+
+## Key Findings
+- Finding 1 (most important first)
+- Finding 2
+- Finding 3
+- Finding 4
+- Finding 5
+
+## Evidence & Analysis
+Detailed paragraphs supporting each finding with reasoning.
+
+## Conflicting Views
+Where experts, data, or strategies disagree on this topic.
+
+## Practical Application
+How a swing/scalp trader should act on this information.
+
+## Sources & Further Reading
+- Suggested source or concept 1
+- Suggested source or concept 2
+- Suggested source or concept 3
+
+---
+Report generated: ${new Date().toLocaleString()}`;
+
+    const result = await callClaude([{ role:'user', content: `Research this question thoroughly: ${q}` }], system);
+
+    body.innerHTML = renderMd(result);
+    dot.className = 'status-dot dot-done';
+    status.textContent = 'Complete';
+    saveToHistory('research', q, result);
+
+    if (document.getElementById('researchNotion').checked) {
+      status.textContent = 'Pushing to Notion...';
+      try {
+        const dbId = getKey('agentNotionResearchDb');
+        await pushToNotion(dbId, q, result, 'Research Report');
+        notionR.textContent = '✓ Saved to Notion Research database';
+        notionR.classList.add('show');
+        status.textContent = 'Complete · Saved to Notion';
+      } catch(e) {
+        notionR.textContent = '⚠ Notion push failed: ' + e.message;
+        notionR.classList.add('show');
+        status.textContent = 'Complete (Notion failed)';
+      }
+    }
+
+  } catch(e) {
+    body.innerHTML = '⚠ Error: ' + e.message;
+    dot.className = 'status-dot dot-error';
+    status.textContent = 'Error';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<span>Run Research</span>';
+}
+
+// ══════════════════════════════════════════════
+// SYNTHESIS AGENT
+// ══════════════════════════════════════════════
+async function runSynth() {
+  const url = document.getElementById('synthUrl').value.trim();
+  if (!url) return;
+
+  const btn    = document.getElementById('synthBtn');
+  const output = document.getElementById('synthOutput');
+  const body   = document.getElementById('synthBody');
+  const dot    = document.getElementById('synthDot');
+  const status = document.getElementById('synthStatus');
+  const tBox   = document.getElementById('takeawayBox');
+  const notionR = document.getElementById('synthNotionResult');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Fetching...';
+  output.classList.add('show');
+  tBox.classList.remove('show');
+  notionR.classList.remove('show');
+  dot.className = 'status-dot dot-thinking';
+  status.textContent = 'Fetching article...';
+  body.innerHTML = '';
+
+  try {
+    status.textContent = 'Reading article...';
+    const articleText = await fetchArticle(url);
+
+    status.textContent = 'Synthesizing with Claude...';
+    const system = `You are a sharp research synthesizer. Given raw article text and its URL, produce a structured breakdown in this format:
+
+## Article Overview
+**Title:** (infer from content)
+**Source:** (infer domain)
+**Core Argument:** 2-3 sentence summary of the article's central claim.
+
+## Key Quotes
+> Quote 1 that best captures a central idea
+> Quote 2 that supports a key claim
+> Quote 3 that is most actionable or surprising
+
+## Evidence & Data
+- Key data point or statistic 1
+- Key data point or statistic 2
+- Key evidence 3
+
+## What This Means for Traders
+Practical implications for swing and scalp trading based on this article.
+
+## Agree / Disagree / Verify
+- Agree: What in this article is well-supported
+- Disagree or Question: What needs scrutiny
+- Verify: What to look up next
+
+---`;
+
+    synthArticleUrl = url;
+    const result = await callClaude([{
+      role: 'user',
+      content: `Article URL: ${url}\n\nArticle content:\n${articleText}\n\nPlease synthesize this article.`
+    }], system);
+
+    synthRawOutput = result;
+    // Extract title
+    const titleMatch = result.match(/\*\*Title:\*\*\s*(.+)/);
+    synthArticleTitle = titleMatch ? titleMatch[1].trim() : url.slice(0,60);
+
+    body.innerHTML = renderMd(result);
+    dot.className = 'status-dot dot-done';
+    status.textContent = 'Complete — add your takeaway below';
+    tBox.classList.add('show');
+    saveToHistory('synth', url, result);
+
+  } catch(e) {
+    body.innerHTML = '⚠ Error: ' + e.message;
+    dot.className = 'status-dot dot-error';
+    status.textContent = 'Error';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<span>Synthesize Article</span>';
+}
+
+async function submitTakeaway() {
+  const takeaway  = document.getElementById('takeawayText').value.trim();
+  const notionR   = document.getElementById('synthNotionResult');
+  const status    = document.getElementById('synthStatus');
+  const tBox      = document.getElementById('takeawayBox');
+
+  const fullContent = synthRawOutput
+    + '\n\n## My Takeaway\n'
+    + (takeaway || '(no takeaway added)')
+    + '\n\n**Source URL:** ' + synthArticleUrl;
+
+  if (document.getElementById('synthNotion').checked) {
+    status.textContent = 'Pushing to Notion...';
+    try {
+      const dbId = getKey('agentNotionKbDb');
+      await pushToNotion(dbId, synthArticleTitle, fullContent, 'Knowledge Base');
+      notionR.textContent = '✓ Saved to Notion Knowledge Base';
+      notionR.classList.add('show');
+      status.textContent = 'Complete · Saved to Notion';
+    } catch(e) {
+      notionR.textContent = '⚠ Notion push failed: ' + e.message;
+      notionR.classList.add('show');
+      status.textContent = 'Complete (Notion failed)';
+    }
+  }
+
+  tBox.classList.remove('show');
+}
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+function copyOutput(id) {
+  const text = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(text);
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+loadKeys();
+</script>
+</body>
+</html>
