@@ -534,8 +534,6 @@ async function pushToNotion(dbId, title, content, type='research') {
     parent: { database_id: dbId },
     properties: {
       Name: { title: [{ text: { content: title } }] },
-      Type: { rich_text: [{ text: { content: type } }] },
-      Date: { rich_text: [{ text: { content: new Date().toLocaleDateString() } }] },
     },
     children: chunkToBlocks(content),
   };
