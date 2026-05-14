@@ -530,18 +530,25 @@ async function pushToNotion(dbId, title, content, type='research') {
   if (!token) throw new Error('No Notion token.');
   if (!dbId)  throw new Error('No Notion database ID for ' + type);
 
+  const allBlocks = chunkToBlocks(content);
+  const today = new Date().toISOString().split('T')[0];
+  // Generate a short topic summary from the title (first 80 chars)
+  const topic = title.length > 80 ? title.slice(0, 80) + '...' : title;
   const payload = {
     parent: { database_id: dbId },
     properties: {
-      Name: { title: [{ text: { content: title } }] },
+      Name:   { title:     [{ text: { content: title } }] },
+      Topic:  { rich_text: [{ text: { content: topic } }] },
+      Date:   { date:      { start: today } },
+      Type:   { select:    { name: type === 'research' ? 'Research Report' : 'Knowledge Base' } },
+      Status: { select:    { name: 'Unread' } },
     },
-    children: chunkToBlocks(content),
   };
 
   const res = await fetch('/.netlify/functions/notion-proxy', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, endpoint: 'pages', body: payload }),
+    body: JSON.stringify({ token, endpoint: 'pages', body: payload, blocks: allBlocks }),
   });
 
   if (!res.ok) {
@@ -569,7 +576,6 @@ function chunkToBlocks(text) {
     } else if (line.trim()) {
       blocks.push({ object:'block', type:'paragraph', paragraph:{ rich_text:[{type:'text',text:{content:line}}]}});
     }
-    if (blocks.length >= 95) break; // Notion limit per request
   }
   return blocks;
 }
