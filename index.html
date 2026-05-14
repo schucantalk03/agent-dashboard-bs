@@ -384,7 +384,13 @@
         </div>
       </div>
 
-      <textarea id="synthUrl" rows="2" placeholder="https://..."></textarea>
+      <textarea id="synthUrl" rows="2" placeholder="https://... (paste URL)"></textarea>
+
+      <div style="margin:10px 0;font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;letter-spacing:.08em;">
+        — OR PASTE ARTICLE TEXT BELOW (for paywalled / bot-protected sites) —
+      </div>
+
+      <textarea id="synthText" rows="5" placeholder="Paste the full article text here if the URL fetch is blocked..."></textarea>
 
       <div class="row">
         <button class="run-btn btn-synth" id="synthBtn" onclick="runSynth()">
@@ -723,7 +729,8 @@ Report generated: ${new Date().toLocaleString()}`;
 // ══════════════════════════════════════════════
 async function runSynth() {
   const url = document.getElementById('synthUrl').value.trim();
-  if (!url) return;
+  const pastedCheck = document.getElementById('synthText').value.trim();
+  if (!url && !pastedCheck) return;
 
   const btn    = document.getElementById('synthBtn');
   const output = document.getElementById('synthOutput');
@@ -743,8 +750,21 @@ async function runSynth() {
   body.innerHTML = '';
 
   try {
-    status.textContent = 'Reading article...';
-    const articleText = await fetchArticle(url);
+    let articleText = '';
+    const pastedText = document.getElementById('synthText').value.trim();
+
+    if (pastedText) {
+      // Use pasted text directly
+      articleText = pastedText.slice(0, 12000);
+      status.textContent = 'Synthesizing pasted text...';
+    } else if (url) {
+      // Try fetching the URL
+      status.textContent = 'Fetching article...';
+      articleText = await fetchArticle(url);
+      status.textContent = 'Synthesizing with Claude...';
+    } else {
+      throw new Error('Please enter a URL or paste article text.');
+    }
 
     status.textContent = 'Synthesizing with Claude...';
     const system = `You are a sharp research synthesizer. Given raw article text and its URL, produce a structured breakdown in this format:
