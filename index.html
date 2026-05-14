@@ -1104,13 +1104,6 @@ Closed: ${new Date().toLocaleString()}`
       addTradeLog('⚠ Sheets log error: ' + e.message);
     }
 
-    // ── Also push breakdown to Notion ──
-    const dbId = getKey('agentNotionTradeDb');
-    if (dbId) {
-      const title = `CLOSED: ${trade.instrument} ${dir} — Post-Trade`;
-      await pushToNotion(dbId, title, result, 'Post-Trade Breakdown');
-    }
-
   } catch(e) {
     addTradeLog('⚠ Breakdown failed: ' + e.message);
   }
