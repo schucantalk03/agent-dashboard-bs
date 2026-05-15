@@ -3,386 +3,275 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Agent Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<title>J.A.R.V.I.S · Agent Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet"/>
 <style>
-  :root {
-    --bg:        #0a0a0f;
-    --surface:   #111118;
-    --border:    #1e1e2e;
-    --border-hi: #2e2e4a;
-    --accent:    #00e5a0;
-    --accent2:   #7b61ff;
-    --amber:     #f5a623;
-    --text:      #e2e2f0;
-    --muted:     #6b6b8a;
-    --danger:    #ff5c5c;
-    --mono:      'Space Mono', monospace;
-    --sans:      'Syne', sans-serif;
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh;overflow-x:hidden}
+body{background:#010a14;color:#7cc8f0;font-family:'Rajdhani',sans-serif;font-weight:500;position:relative}
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+.scan-line{position:fixed;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,180,255,.18) 35%,rgba(0,180,255,.5) 50%,rgba(0,180,255,.18) 65%,transparent);pointer-events:none;z-index:2;animation:scan-anim 10s ease-in-out infinite}
+@keyframes scan-anim{0%{top:-2px;opacity:0}8%{opacity:1}92%{opacity:1}100%{top:100%;opacity:0}}
+.corner{position:fixed;width:48px;height:48px;z-index:2;pointer-events:none}
+.corner::before,.corner::after{content:'';position:absolute;background:rgba(0,180,255,.2)}
+.corner::before{width:1px;height:100%}.corner::after{width:100%;height:1px}
+.tl{top:12px;left:12px}.tr{top:12px;right:12px;transform:scaleX(-1)}.bl{bottom:12px;left:12px;transform:scaleY(-1)}.br{bottom:12px;right:12px;transform:scale(-1)}
+.wrap{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:0 22px 80px}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* HEADER */
+header{padding:26px 0 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,180,255,.1);position:relative}
+header::after{content:'';position:absolute;bottom:-1px;left:0;width:300px;height:1px;background:linear-gradient(90deg,#00b4ff,transparent)}
+.logo{display:flex;align-items:center;gap:14px}
+.reactor-wrap{position:relative;width:52px;height:52px;flex-shrink:0}
+#reactor-canvas{position:absolute;inset:0}
+.logo-txt .l1{font-size:28px;font-weight:700;letter-spacing:5px;color:#d8f0ff;text-shadow:0 0 18px rgba(0,180,255,.3)}
+.logo-txt .l1 span{color:#00b4ff}
+.logo-txt .l2{font-family:'Share Tech Mono',monospace;font-size:9px;color:#1a4060;letter-spacing:3px;margin-top:3px}
+.hdr-right{text-align:right}
+.sys-online{font-family:'Share Tech Mono',monospace;font-size:10px;color:#00ffaa;letter-spacing:2px;display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.spulse{width:6px;height:6px;border-radius:50%;background:#00ffaa;box-shadow:0 0 8px #00ffaa;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+.sys-time{font-family:'Share Tech Mono',monospace;font-size:11px;color:#1a4060;margin-top:4px}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+/* TICKER */
+.ticker-bar{background:rgba(0,180,255,.04);border:1px solid rgba(0,180,255,.08);border-radius:2px;padding:5px 12px;margin-bottom:14px;overflow:hidden;display:flex;align-items:center;gap:10px}
+.ticker-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:#00b4ff;letter-spacing:.15em;white-space:nowrap;flex-shrink:0}
+.ticker-scroll{font-family:'Share Tech Mono',monospace;font-size:10px;color:#3a7090;white-space:nowrap;animation:scroll-ticker 25s linear infinite;flex:1;overflow:hidden}
+@keyframes scroll-ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
-  /* grid noise overlay */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(0,229,160,.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,160,.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
+/* STATUS ROW */
+.status-row{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+#status-canvas{flex-shrink:0;display:block}
+.stat-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:rgba(0,20,40,.7);border:1px solid rgba(0,180,255,.1);border-radius:2px;padding:8px 12px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,#00b4ff,transparent)}
+.stat-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:#1a4060;letter-spacing:.14em}
+.stat-val{font-size:20px;font-weight:700;color:#00b4ff;margin-top:2px;line-height:1}
+.stat-val.ok{color:#00ffaa}.stat-val.warn{color:#e8a020}
 
-  .wrap { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 0 24px 80px; }
+/* HEX NAV */
+.hex-nav{display:flex;justify-content:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.hex-btn{position:relative;width:108px;height:60px;cursor:pointer;transition:all .25s;background:none;border:none;padding:0}
+.hex-btn svg{position:absolute;inset:0;width:100%;height:100%}
+.hex-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.12em;color:#1a4060;transition:color .25s;gap:4px;text-transform:uppercase}
+.hex-btn.active .hex-inner{color:#00b4ff}
+.hex-btn:hover .hex-inner{color:#7cc8f0}
 
-  /* ── HEADER ── */
-  header {
-    padding: 40px 0 32px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 36px;
-    display: flex; align-items: flex-end; justify-content: space-between;
-  }
-  .logo { display: flex; align-items: center; gap: 12px; }
-  .logo-dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 12px var(--accent);
-    animation: pulse 2.4s ease-in-out infinite;
-  }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-  h1 { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
-  h1 span { color: var(--accent); }
-  .version { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+/* PANELS */
+.panel{display:none}.panel.active{display:block}
 
-  /* ── SETTINGS STRIP ── */
-  .settings {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px 24px;
-    margin-bottom: 28px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-  .settings h2 {
-    grid-column: 1/-1;
-    font-size: 11px; font-family: var(--mono); color: var(--muted);
-    letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px;
-  }
-  label { font-size: 12px; color: var(--muted); font-family: var(--mono); display: block; margin-bottom: 6px; }
-  input[type=text], input[type=password] {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 12px;
-    padding: 10px 12px;
-    outline: none;
-    transition: border-color .2s;
-  }
-  input:focus { border-color: var(--accent); }
-  .save-btn {
-    grid-column: 1/-1;
-    background: transparent;
-    border: 1px solid var(--border-hi);
-    border-radius: 6px;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 12px;
-    padding: 10px;
-    cursor: pointer;
-    transition: all .2s;
-    text-align: center;
-  }
-  .save-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .saved-badge {
-    display: none; font-size: 11px; font-family: var(--mono);
-    color: var(--accent); text-align: center; margin-top: 6px;
-  }
-  .saved-badge.show { display: block; }
+/* CARDS */
+.card{background:linear-gradient(135deg,rgba(0,20,40,.85),rgba(0,8,20,.92));border:1px solid rgba(0,180,255,.1);border-radius:4px;padding:20px 22px;margin-bottom:12px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,#00b4ff 0%,rgba(0,180,255,.2) 50%,transparent)}
+.card::after{content:'';position:absolute;bottom:0;right:0;width:0;height:0;border-style:solid;border-width:0 0 22px 22px;border-color:transparent transparent rgba(0,180,255,.12) transparent}
+.card-rot-ring{position:absolute;top:-20px;right:-20px;width:70px;height:70px;border:1px solid rgba(0,180,255,.08);border-radius:50%;animation:rotslow 25s linear infinite}
+@keyframes rotslow{to{transform:rotate(360deg)}}
+.card-hdr{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.card-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;border:1px solid rgba(0,180,255,.25);background:rgba(0,180,255,.06);animation:icon-glow 4s ease-in-out infinite}
+@keyframes icon-glow{0%,100%{box-shadow:0 0 8px rgba(0,180,255,.2)}50%{box-shadow:0 0 18px rgba(0,180,255,.5)}}
+.card-title{font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#d8f0ff}
+.card-sub{font-family:'Share Tech Mono',monospace;font-size:10px;color:#1a4060;margin-top:2px}
 
-  /* ── TABS ── */
-  .tabs { display: flex; gap: 2px; margin-bottom: 24px; }
-  .tab {
-    padding: 10px 22px;
-    font-family: var(--mono); font-size: 12px; letter-spacing: .06em;
-    border: 1px solid var(--border);
-    background: transparent; color: var(--muted);
-    cursor: pointer; border-radius: 6px; transition: all .2s;
-  }
-  .tab.active { background: var(--surface); color: var(--accent); border-color: var(--accent); }
-  .tab:hover:not(.active) { color: var(--text); border-color: var(--border-hi); }
+/* INPUTS */
+.hud-textarea,.hud-input{width:100%;background:rgba(0,180,255,.03);border:none;border-bottom:1px solid rgba(0,180,255,.2);border-radius:0;color:#d8f0ff;font-family:'Share Tech Mono',monospace;font-size:12px;padding:10px 12px;outline:none;transition:all .2s;line-height:1.7}
+.hud-textarea{resize:vertical}
+.hud-textarea:focus,.hud-input:focus{border-bottom-color:#00b4ff;background:rgba(0,180,255,.06);box-shadow:0 4px 14px rgba(0,180,255,.07)}
+.hud-textarea::placeholder,.hud-input::placeholder{color:#1a4060}
+.input-row{margin-bottom:10px}
+.input-sep{font-family:'Share Tech Mono',monospace;font-size:9px;color:#1a4060;letter-spacing:.15em;text-align:center;margin:8px 0 6px;display:flex;align-items:center;gap:8px}
+.input-sep::before,.input-sep::after{content:'';flex:1;height:1px;background:rgba(0,180,255,.08)}
 
-  /* ── PANELS ── */
-  .panel { display: none; }
-  .panel.active { display: block; }
+/* BUTTONS */
+.row{display:flex;gap:10px;margin-top:12px;align-items:center}
+.hud-btn{padding:10px 22px;border-radius:2px;border:1px solid;font-family:'Share Tech Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;transition:all .25s;letter-spacing:.15em;text-transform:uppercase;display:flex;align-items:center;gap:8px;position:relative;overflow:hidden}
+.hud-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);transform:translateX(-100%);transition:transform .4s}
+.hud-btn:hover::before{transform:translateX(100%)}
+.btn-blue{background:rgba(0,180,255,.1);color:#00b4ff;border-color:rgba(0,180,255,.3)}
+.btn-blue:hover{background:rgba(0,180,255,.2);box-shadow:0 0 22px rgba(0,180,255,.2)}
+.btn-orange{background:rgba(255,107,53,.1);color:#ff6b35;border-color:rgba(255,107,53,.3)}
+.btn-orange:hover{background:rgba(255,107,53,.2);box-shadow:0 0 22px rgba(255,107,53,.2)}
+.btn-gold{background:rgba(232,160,32,.1);color:#e8a020;border-color:rgba(232,160,32,.3)}
+.btn-gold:hover{background:rgba(232,160,32,.2);box-shadow:0 0 22px rgba(232,160,32,.2)}
+.hud-btn:disabled{opacity:.2;cursor:not-allowed;box-shadow:none}
+.notion-toggle{display:flex;align-items:center;gap:7px;font-family:'Share Tech Mono',monospace;font-size:9px;color:#1a4060;cursor:pointer;margin-left:auto;letter-spacing:.1em;text-transform:uppercase}
+.notion-toggle input{accent-color:#00b4ff}
 
-  /* ── AGENT CARD ── */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 28px;
-    margin-bottom: 20px;
-  }
-  .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-  .card-icon {
-    width: 36px; height: 36px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px; flex-shrink: 0;
-  }
-  .icon-research { background: rgba(0,229,160,.1); }
-  .icon-synth    { background: rgba(123,97,255,.1); }
-  .card-title { font-size: 16px; font-weight: 800; }
-  .card-sub { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+/* OUTPUT */
+.output{margin-top:16px;background:rgba(0,0,0,.5);border:1px solid rgba(0,180,255,.08);border-radius:2px;overflow:hidden;display:none}
+.output.show{display:block}
+.out-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;border-bottom:1px solid rgba(0,180,255,.08);background:rgba(0,180,255,.03);font-family:'Share Tech Mono',monospace;font-size:9px;color:#1a4060;letter-spacing:.12em;text-transform:uppercase}
+.sdot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:6px}
+.dot-think{background:#e8a020;box-shadow:0 0 8px #e8a020;animation:blink 1s infinite}
+.dot-done{background:#00ffaa;box-shadow:0 0 8px #00ffaa}
+.dot-err{background:#ff3a3a;box-shadow:0 0 8px #ff3a3a}
+.copy-btn{background:transparent;border:1px solid rgba(0,180,255,.1);color:#1a4060;font-family:'Share Tech Mono',monospace;font-size:9px;padding:3px 9px;border-radius:2px;cursor:pointer;transition:all .2s;letter-spacing:.1em;text-transform:uppercase}
+.copy-btn:hover{color:#00b4ff;border-color:rgba(0,180,255,.3)}
+.out-body{padding:16px;font-family:'Share Tech Mono',monospace;font-size:12px;line-height:1.9;color:#7cc8f0;white-space:pre-wrap;word-break:break-word;max-height:500px;overflow-y:auto}
+.out-body h2{color:#00b4ff;font-size:13px;margin:16px 0 6px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:3px;text-transform:uppercase;border-bottom:1px solid rgba(0,180,255,.1);padding-bottom:4px}
+.out-body h3{color:#e8a020;font-size:13px;margin:12px 0 5px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px}
+.out-body strong{color:#d8f0ff;font-weight:700}
+.out-body a{color:#00b4ff;text-decoration:none}
+.out-body blockquote{border-left:2px solid #ff6b35;padding-left:12px;color:#7cc8f0;margin:8px 0;background:rgba(255,107,53,.04)}
+.out-body hr{border:none;border-top:1px solid rgba(0,180,255,.1);margin:14px 0}
+.notion-res{padding:6px 16px;border-top:1px solid rgba(0,180,255,.08);font-family:'Share Tech Mono',monospace;font-size:9px;color:#00ffaa;letter-spacing:.12em;display:none}
+.notion-res.show{display:block}
 
-  textarea {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 13px;
-    padding: 14px 16px;
-    resize: vertical;
-    outline: none;
-    transition: border-color .2s;
-    line-height: 1.6;
-  }
-  textarea:focus { border-color: var(--accent); }
+/* WAVEFORM */
+.waveform{display:none;align-items:center;gap:2px;height:26px;margin:12px 0}
+.waveform.show{display:flex}
+.wbar{width:3px;border-radius:2px;background:#00b4ff;animation:wave-anim 1.1s ease-in-out infinite}
+@keyframes wave-anim{0%,100%{height:3px;opacity:.25}50%{height:22px;opacity:1}}
+.wave-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:#1a4060;letter-spacing:.15em;margin-left:8px}
 
-  .row { display: flex; gap: 12px; margin-top: 14px; align-items: center; }
+/* TAKEAWAY */
+.takeaway-box{margin-top:12px;background:rgba(255,107,53,.05);border:1px solid rgba(255,107,53,.18);border-radius:2px;padding:14px;display:none}
+.takeaway-box.show{display:block}
+.takeaway-box label{color:#ff6b35;font-family:'Share Tech Mono',monospace;font-size:9px;margin-bottom:8px;display:block;letter-spacing:.15em;text-transform:uppercase}
+.takeaway-row{display:flex;gap:8px;margin-top:8px}
+.ta-submit{padding:8px 16px;border-radius:2px;background:rgba(255,107,53,.15);border:1px solid rgba(255,107,53,.3);color:#ff6b35;font-family:'Share Tech Mono',monospace;font-size:9px;cursor:pointer;white-space:nowrap;letter-spacing:.12em;text-transform:uppercase}
+.ta-submit:hover{background:rgba(255,107,53,.28)}
 
-  .run-btn {
-    padding: 12px 28px;
-    border-radius: 8px;
-    border: none;
-    font-family: var(--mono); font-size: 13px; font-weight: 700;
-    cursor: pointer; transition: all .2s; letter-spacing: .04em;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .btn-research { background: var(--accent); color: var(--bg); }
-  .btn-research:hover { box-shadow: 0 0 20px rgba(0,229,160,.3); }
-  .btn-synth { background: var(--accent2); color: #fff; }
-  .btn-synth:hover { box-shadow: 0 0 20px rgba(123,97,255,.3); }
-  .run-btn:disabled { opacity: .4; cursor: not-allowed; }
+/* HISTORY */
+.hist-section{margin-top:22px}
+.hist-title{font-family:'Share Tech Mono',monospace;font-size:9px;color:#00b4ff;letter-spacing:.22em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.hist-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(0,180,255,.2),transparent)}
+.hist-item{background:rgba(0,20,40,.6);border:1px solid rgba(0,180,255,.08);border-radius:2px;padding:10px 14px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.hist-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#00b4ff;transform:scaleY(0);transition:transform .2s}
+.hist-item:hover{border-color:rgba(0,180,255,.2);background:rgba(0,180,255,.04)}
+.hist-item:hover::before{transform:scaleY(1)}
+.h-q{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:580px;color:#d8f0ff}
+.h-m{font-family:'Share Tech Mono',monospace;font-size:9px;color:#1a4060;flex-shrink:0;margin-left:14px}
+.no-hist{font-family:'Share Tech Mono',monospace;font-size:11px;color:#1a4060}
 
-  .notion-toggle {
-    display: flex; align-items: center; gap: 8px;
-    font-family: var(--mono); font-size: 12px; color: var(--muted);
-    cursor: pointer; margin-left: auto;
-  }
-  .notion-toggle input { accent-color: var(--accent); cursor: pointer; }
+/* TRADE */
+.trade-status-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.trade-monitor-lbl{font-family:'Share Tech Mono',monospace;font-size:10px;color:#1a4060;display:flex;align-items:center;gap:7px}
+.reconnect-btn{background:transparent;border:1px solid rgba(0,180,255,.2);color:#00b4ff;font-family:'Share Tech Mono',monospace;font-size:9px;padding:3px 10px;border-radius:2px;cursor:pointer;letter-spacing:.1em;transition:all .2s}
+.reconnect-btn:hover{border-color:#00b4ff}
+.open-positions-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:#1a4060;letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px}
+.trade-log-body{max-height:460px;overflow-y:auto;font-family:'Share Tech Mono',monospace;font-size:12px;line-height:1.7}
+.trade-log-entry{border-bottom:1px solid rgba(0,180,255,.06);padding:12px 0}
 
-  /* ── OUTPUT AREA ── */
-  .output {
-    margin-top: 24px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-    display: none;
-  }
-  .output.show { display: block; }
-  .output-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-    font-family: var(--mono); font-size: 11px; color: var(--muted);
-  }
-  .status-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    display: inline-block; margin-right: 6px;
-  }
-  .dot-thinking { background: var(--amber); animation: pulse 1s infinite; }
-  .dot-done     { background: var(--accent); }
-  .dot-error    { background: var(--danger); }
-  .copy-btn {
-    background: transparent; border: 1px solid var(--border-hi);
-    color: var(--muted); font-family: var(--mono); font-size: 11px;
-    padding: 4px 10px; border-radius: 4px; cursor: pointer; transition: all .2s;
-  }
-  .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
-  .output-body {
-    padding: 20px;
-    font-family: var(--mono); font-size: 13px; line-height: 1.8;
-    color: var(--text); white-space: pre-wrap; word-break: break-word;
-    max-height: 520px; overflow-y: auto;
-  }
-  .notion-result {
-    padding: 10px 20px;
-    border-top: 1px solid var(--border);
-    font-family: var(--mono); font-size: 11px;
-    color: var(--accent);
-    display: none;
-  }
-  .notion-result.show { display: block; }
+/* TUTOR */
+.tutor-recent{margin-top:12px;padding:10px 12px;background:rgba(232,160,32,.05);border:1px solid rgba(232,160,32,.1);border-radius:2px}
+.tutor-recent-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:#e8a020;letter-spacing:.15em;margin-bottom:5px}
+.tutor-recent-title{font-size:12px;color:#7cc8f0}
+.tutor-recent-meta{font-family:'Share Tech Mono',monospace;font-size:9px;color:#1a4060;margin-top:2px}
 
-  /* markdown-lite rendering */
-  .output-body h2 { color: var(--accent); font-size: 14px; margin: 16px 0 8px; font-family: var(--sans); font-weight: 800; }
-  .output-body h3 { color: var(--amber); font-size: 13px; margin: 12px 0 6px; font-family: var(--sans); font-weight: 600; }
-  .output-body strong { color: var(--text); font-weight: 700; }
-  .output-body a { color: var(--accent2); text-decoration: none; }
-  .output-body a:hover { text-decoration: underline; }
-  .output-body blockquote {
-    border-left: 3px solid var(--accent2);
-    padding-left: 14px; color: var(--muted); margin: 10px 0;
-  }
-  .output-body hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+/* SETTINGS */
+.settings{background:linear-gradient(135deg,rgba(0,20,40,.9),rgba(0,8,20,.95));border:1px solid rgba(0,180,255,.1);border-radius:4px;padding:18px 22px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;position:relative}
+.settings::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,#00b4ff,transparent 60%)}
+.settings-title{grid-column:1/-1;font-family:'Share Tech Mono',monospace;font-size:9px;color:#00b4ff;letter-spacing:.22em;text-transform:uppercase;margin-bottom:2px}
+.settings label{font-family:'Share Tech Mono',monospace;font-size:9px;color:#1a4060;display:block;margin-bottom:4px;letter-spacing:.1em;text-transform:uppercase}
+.save-key-btn{grid-column:1/-1;background:transparent;border:1px solid rgba(0,180,255,.2);border-radius:2px;color:#00b4ff;font-family:'Share Tech Mono',monospace;font-size:9px;padding:9px;cursor:pointer;transition:all .25s;text-align:center;letter-spacing:.18em;text-transform:uppercase;position:relative;overflow:hidden}
+.save-key-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(0,180,255,.08),transparent);transform:translateX(-100%);transition:transform .4s}
+.save-key-btn:hover::before{transform:translateX(100%)}
+.save-key-btn:hover{border-color:rgba(0,180,255,.5);box-shadow:0 0 18px rgba(0,180,255,.15)}
+.saved-badge{display:none;font-family:'Share Tech Mono',monospace;font-size:9px;color:#00ffaa;text-align:center;margin-top:3px;letter-spacing:.15em}
+.saved-badge.show{display:block}
 
-  /* ── TAKEAWAY PROMPT ── */
-  .takeaway-box {
-    margin-top: 16px;
-    background: rgba(123,97,255,.07);
-    border: 1px solid var(--accent2);
-    border-radius: 8px;
-    padding: 18px;
-    display: none;
-  }
-  .takeaway-box.show { display: block; }
-  .takeaway-box label { color: var(--accent2); font-size: 12px; font-family: var(--mono); margin-bottom: 10px; display: block; }
-  .takeaway-row { display: flex; gap: 10px; margin-top: 10px; }
-  .takeaway-submit {
-    padding: 10px 20px; border-radius: 6px;
-    background: var(--accent2); border: none; color: #fff;
-    font-family: var(--mono); font-size: 12px; cursor: pointer; white-space: nowrap;
-  }
-  .takeaway-submit:hover { opacity: .85; }
+/* scrollbar */
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(0,180,255,.18);border-radius:2px}
 
-  /* ── HISTORY ── */
-  .history-section { margin-top: 36px; }
-  .history-title {
-    font-family: var(--mono); font-size: 11px; color: var(--muted);
-    letter-spacing: .12em; text-transform: uppercase; margin-bottom: 14px;
-  }
-  .history-item {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 14px 18px; margin-bottom: 8px;
-    display: flex; justify-content: space-between; align-items: center;
-    cursor: pointer; transition: border-color .2s;
-  }
-  .history-item:hover { border-color: var(--border-hi); }
-  .h-query { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 600px; }
-  .h-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); flex-shrink: 0; margin-left: 16px; }
-  .no-history { font-family: var(--mono); font-size: 12px; color: var(--muted); }
-
-  /* scrollbar */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
-
-  /* spinner */
-  .spinner {
-    display: inline-block; width: 12px; height: 12px;
-    border: 2px solid rgba(0,0,0,.2);
-    border-top-color: currentColor;
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* spinner */
+.spinner{display:inline-block;width:10px;height:10px;border:1.5px solid rgba(0,180,255,.2);border-top-color:#00b4ff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="scan-line"></div>
+<div class="corner tl"></div><div class="corner tr"></div>
+<div class="corner bl"></div><div class="corner br"></div>
+
 <div class="wrap">
 
   <!-- HEADER -->
   <header>
     <div class="logo">
-      <div class="logo-dot"></div>
-      <h1>Agent <span>Dashboard</span></h1>
+      <div class="reactor-wrap"><canvas id="reactor-canvas" width="52" height="52"></canvas></div>
+      <div class="logo-txt">
+        <div class="l1">J.A.R.V.I.<span>S</span></div>
+        <div class="l2">JUST A RATHER VERY INTELLIGENT SYSTEM · BUILD 2.0</div>
+      </div>
     </div>
-    <span class="version">v1.0 · Phase 1</span>
+    <div class="hdr-right">
+      <div class="sys-online"><div class="spulse"></div>ALL SYSTEMS ONLINE</div>
+      <div class="sys-time" id="sysTime"></div>
+    </div>
   </header>
 
-  <!-- SETTINGS -->
-  <div class="settings" id="settingsBox">
-    <h2>⚙ Configuration</h2>
-    <div>
-      <label>ANTHROPIC API KEY</label>
-      <input type="password" id="anthropicKey" placeholder="sk-ant-..."/>
+  <!-- TICKER -->
+  <div class="ticker-bar">
+    <span class="ticker-lbl">EUR/USD</span>
+    <div style="overflow:hidden;flex:1">
+      <span class="ticker-scroll">
+        EUR/USD LIVE · LONDON OPEN 07:00–12:00 EST &nbsp;|&nbsp; VOLATILITY: MODERATE &nbsp;|&nbsp; API: CONNECTED &nbsp;|&nbsp; NOTION: SYNCED &nbsp;|&nbsp; OANDA DEMO: LIVE &nbsp;|&nbsp; POLLING: M–F 07:00–12:00 &nbsp;|&nbsp; SHEETS: CONNECTED &nbsp;|&nbsp; EUR/USD LIVE · LONDON OPEN 07:00–12:00 EST &nbsp;|&nbsp; VOLATILITY: MODERATE &nbsp;|&nbsp; API: CONNECTED &nbsp;|&nbsp; NOTION: SYNCED &nbsp;|&nbsp; OANDA DEMO: LIVE &nbsp;|&nbsp; POLLING: M–F 07:00–12:00 &nbsp;|&nbsp; SHEETS: CONNECTED
+      </span>
     </div>
-    <div>
-      <label>NOTION INTEGRATION TOKEN</label>
-      <input type="password" id="notionToken" placeholder="secret_..."/>
-    </div>
-    <div>
-      <label>NOTION RESEARCH DB ID</label>
-      <input type="text" id="notionResearchDb" placeholder="32-char page ID"/>
-    </div>
-    <div>
-      <label>NOTION KNOWLEDGE BASE DB ID</label>
-      <input type="text" id="notionKbDb" placeholder="32-char page ID"/>
-    </div>
-    <div>
-      <label>OANDA API TOKEN</label>
-      <input type="password" id="oandaToken" placeholder="Your OANDA personal access token"/>
-    </div>
-    <div>
-      <label>OANDA ACCOUNT ID</label>
-      <input type="text" id="oandaAccountId" placeholder="101-001-XXXXXXX-001"/>
-    </div>
-    <div>
-      <label>NOTION TRADING LESSONS DB ID</label>
-      <input type="text" id="notionLessonsDb" placeholder="32-char page ID"/>
-    </div>
-    <button class="save-btn" onclick="saveKeys()">Save Keys Locally (browser only)</button>
-    <div class="saved-badge" id="savedBadge">✓ Saved to localStorage</div>
   </div>
 
-  <!-- TABS -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('research')">🔬 Research</button>
-    <button class="tab" onclick="switchTab('synth')">📖 Synthesis</button>
-    <button class="tab" onclick="switchTab('tutor')">🎓 Trading Tutor</button>
-    <button class="tab" onclick="switchTab('trades')">📊 Trade Analyzer</button>
-    <button class="tab" onclick="switchTab('history')">📋 History</button>
+  <!-- STATUS ROW -->
+  <div class="status-row">
+    <canvas id="status-canvas" width="110" height="110"></canvas>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-lbl">OANDA STATUS</div><div class="stat-val ok" id="oandaStatus">LIVE</div></div>
+      <div class="stat-card"><div class="stat-lbl">OPEN TRADES</div><div class="stat-val" id="openTradeCount">0</div></div>
+      <div class="stat-card"><div class="stat-lbl">NOTION SYNC</div><div class="stat-val ok">SYNCED</div></div>
+      <div class="stat-card"><div class="stat-lbl">NEXT POLL</div><div class="stat-val warn" id="pollCountdown">5:00</div></div>
+    </div>
+  </div>
+
+  <!-- HEX NAV -->
+  <div class="hex-nav">
+    <button class="hex-btn active" onclick="switchTab('research')">
+      <svg viewBox="0 0 108 60"><polygon id="h0" points="16,30 30,5 78,5 92,30 78,55 30,55" fill="rgba(0,180,255,.1)" stroke="rgba(0,180,255,.4)" stroke-width="1"/></svg>
+      <div class="hex-inner">⬡<span>RESEARCH</span></div>
+    </button>
+    <button class="hex-btn" onclick="switchTab('synth')">
+      <svg viewBox="0 0 108 60"><polygon id="h1" points="16,30 30,5 78,5 92,30 78,55 30,55" fill="rgba(0,0,0,.3)" stroke="rgba(0,180,255,.15)" stroke-width="1"/></svg>
+      <div class="hex-inner">⬡<span>SYNTHESIS</span></div>
+    </button>
+    <button class="hex-btn" onclick="switchTab('tutor')">
+      <svg viewBox="0 0 108 60"><polygon id="h2" points="16,30 30,5 78,5 92,30 78,55 30,55" fill="rgba(0,0,0,.3)" stroke="rgba(0,180,255,.15)" stroke-width="1"/></svg>
+      <div class="hex-inner">⬡<span>TUTOR</span></div>
+    </button>
+    <button class="hex-btn" onclick="switchTab('trade')">
+      <svg viewBox="0 0 108 60"><polygon id="h3" points="16,30 30,5 78,5 92,30 78,55 30,55" fill="rgba(0,0,0,.3)" stroke="rgba(0,180,255,.15)" stroke-width="1"/></svg>
+      <div class="hex-inner">⬡<span>TRADE AI</span></div>
+    </button>
+    <button class="hex-btn" onclick="switchTab('logs')">
+      <svg viewBox="0 0 108 60"><polygon id="h4" points="16,30 30,5 78,5 92,30 78,55 30,55" fill="rgba(0,0,0,.3)" stroke="rgba(0,180,255,.15)" stroke-width="1"/></svg>
+      <div class="hex-inner">⬡<span>LOGS</span></div>
+    </button>
+    <button class="hex-btn" onclick="switchTab('config')">
+      <svg viewBox="0 0 108 60"><polygon id="h5" points="16,30 30,5 78,5 92,30 78,55 30,55" fill="rgba(0,0,0,.3)" stroke="rgba(0,180,255,.15)" stroke-width="1"/></svg>
+      <div class="hex-inner">⬡<span>CONFIG</span></div>
+    </button>
   </div>
 
   <!-- ══ RESEARCH PANEL ══ -->
   <div class="panel active" id="panel-research">
     <div class="card">
-      <div class="card-header">
-        <div class="card-icon icon-research">🔬</div>
-        <div>
-          <div class="card-title">Research Agent</div>
-          <div class="card-sub">#14 · Ask a question → structured report → Notion</div>
-        </div>
+      <div class="card-rot-ring"></div>
+      <div class="card-hdr">
+        <div class="card-icon">🔬</div>
+        <div><div class="card-title">Research Agent</div><div class="card-sub">#14 · TYPE A QUESTION → STRUCTURED REPORT → NOTION</div></div>
       </div>
-
-      <textarea id="researchQ" rows="4" placeholder="e.g. What is the risk/reward profile of scalping EUR/USD during London open?"></textarea>
-
+      <textarea class="hud-textarea" id="researchQ" rows="4" placeholder="e.g. What is the risk/reward profile of scalping EUR/USD during London open?"></textarea>
       <div class="row">
-        <button class="run-btn btn-research" id="researchBtn" onclick="runResearch()">
-          <span>Run Research</span>
-        </button>
-        <label class="notion-toggle">
-          <input type="checkbox" id="researchNotion" checked/>
-          Save to Notion
-        </label>
+        <button class="hud-btn btn-blue" id="researchBtn" onclick="runResearch()"><span>EXECUTE QUERY</span></button>
+        <label class="notion-toggle"><input type="checkbox" id="researchNotion" checked/> SAVE TO NOTION</label>
       </div>
-
+      <div class="waveform" id="researchWave">
+        <div class="wbar" style="animation-delay:0s"></div><div class="wbar" style="animation-delay:.1s"></div><div class="wbar" style="animation-delay:.2s"></div><div class="wbar" style="animation-delay:.3s"></div><div class="wbar" style="animation-delay:.4s"></div><div class="wbar" style="animation-delay:.5s"></div><div class="wbar" style="animation-delay:.6s"></div><div class="wbar" style="animation-delay:.7s"></div><div class="wbar" style="animation-delay:.8s"></div><div class="wbar" style="animation-delay:.9s"></div>
+        <span class="wave-lbl">PROCESSING QUERY...</span>
+      </div>
       <div class="output" id="researchOutput">
-        <div class="output-bar">
-          <span><span class="status-dot" id="researchDot"></span><span id="researchStatus">Thinking...</span></span>
-          <button class="copy-btn" onclick="copyOutput('researchBody')">Copy</button>
-        </div>
-        <div class="output-body" id="researchBody"></div>
-        <div class="notion-result" id="researchNotionResult"></div>
+        <div class="out-bar"><span><span class="sdot" id="resDot"></span><span id="resStatus"></span></span><button class="copy-btn" onclick="copyOut('resBody')">COPY</button></div>
+        <div class="out-body" id="resBody"></div>
+        <div class="notion-res" id="resNotion"></div>
       </div>
     </div>
   </div>
@@ -390,62 +279,142 @@
   <!-- ══ SYNTHESIS PANEL ══ -->
   <div class="panel" id="panel-synth">
     <div class="card">
-      <div class="card-header">
-        <div class="card-icon icon-synth">📖</div>
-        <div>
-          <div class="card-title">Content Synthesis Agent</div>
-          <div class="card-sub">#15 · Paste a URL → breakdown + your takeaway → Notion</div>
-        </div>
+      <div class="card-rot-ring"></div>
+      <div class="card-hdr">
+        <div class="card-icon" style="border-color:rgba(255,107,53,.3)">📖</div>
+        <div><div class="card-title">Content Synthesis</div><div class="card-sub">#15 · URL OR PASTE TEXT → BREAKDOWN + TAKEAWAY → NOTION</div></div>
       </div>
-
-      <textarea id="synthUrl" rows="2" placeholder="https://... (paste URL)"></textarea>
-
-      <div style="margin:10px 0;font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;letter-spacing:.08em;">
-        — OR PASTE ARTICLE TEXT BELOW (for paywalled / bot-protected sites) —
-      </div>
-
-      <textarea id="synthText" rows="5" placeholder="Paste the full article text here if the URL fetch is blocked..."></textarea>
-
+      <div class="input-row"><textarea class="hud-textarea" id="synthUrl" rows="2" placeholder="https://... (paste article URL)"></textarea></div>
+      <div class="input-sep">— OR PASTE ARTICLE TEXT BELOW —</div>
+      <div class="input-row"><textarea class="hud-textarea" id="synthText" rows="4" placeholder="Paste full article text here for bot-protected sites..."></textarea></div>
       <div class="row">
-        <button class="run-btn btn-synth" id="synthBtn" onclick="runSynth()">
-          <span>Synthesize Article</span>
-        </button>
-        <label class="notion-toggle">
-          <input type="checkbox" id="synthNotion" checked/>
-          Save to Notion
-        </label>
+        <button class="hud-btn btn-orange" id="synthBtn" onclick="runSynth()"><span>SYNTHESIZE</span></button>
+        <label class="notion-toggle"><input type="checkbox" id="synthNotion" checked/> SAVE TO NOTION</label>
       </div>
-
+      <div class="waveform" id="synthWave">
+        <div class="wbar" style="animation-delay:0s"></div><div class="wbar" style="animation-delay:.1s"></div><div class="wbar" style="animation-delay:.2s"></div><div class="wbar" style="animation-delay:.3s"></div><div class="wbar" style="animation-delay:.4s"></div><div class="wbar" style="animation-delay:.5s"></div><div class="wbar" style="animation-delay:.6s"></div><div class="wbar" style="animation-delay:.7s"></div><div class="wbar" style="animation-delay:.8s"></div><div class="wbar" style="animation-delay:.9s"></div>
+        <span class="wave-lbl">SYNTHESIZING...</span>
+      </div>
       <div class="output" id="synthOutput">
-        <div class="output-bar">
-          <span><span class="status-dot" id="synthDot"></span><span id="synthStatus">Fetching...</span></span>
-          <button class="copy-btn" onclick="copyOutput('synthBody')">Copy</button>
-        </div>
-        <div class="output-body" id="synthBody"></div>
-
-        <!-- Takeaway prompt -->
+        <div class="out-bar"><span><span class="sdot" id="synthDot"></span><span id="synthStatus"></span></span><button class="copy-btn" onclick="copyOut('synthBody')">COPY</button></div>
+        <div class="out-body" id="synthBody"></div>
         <div class="takeaway-box" id="takeawayBox">
-          <label>✏ YOUR TAKEAWAY — What's your main insight or reaction to this article? Any disagreements?</label>
-          <textarea id="takeawayText" rows="3" placeholder="My main takeaway is..."></textarea>
-          <div class="takeaway-row">
-            <button class="takeaway-submit" onclick="submitTakeaway()">Save Takeaway & Push to Notion</button>
-          </div>
+          <label>✏ YOUR TAKEAWAY — WHAT IS YOUR MAIN INSIGHT OR REACTION?</label>
+          <textarea class="hud-textarea" id="takeawayText" rows="3" placeholder="My main takeaway is..."></textarea>
+          <div class="takeaway-row"><button class="ta-submit" onclick="submitTakeaway()">SAVE TAKEAWAY & PUSH TO NOTION</button></div>
         </div>
-
-        <div class="notion-result" id="synthNotionResult"></div>
+        <div class="notion-res" id="synthNotion2"></div>
       </div>
     </div>
   </div>
 
-  <!-- ══ HISTORY PANEL ══ -->
-  <div class="panel" id="panel-history">
-    <div class="history-section">
-      <div class="history-title">Research History</div>
-      <div id="researchHistory"></div>
+  <!-- ══ TUTOR PANEL ══ -->
+  <div class="panel" id="panel-tutor">
+    <div class="card">
+      <div class="card-rot-ring"></div>
+      <div class="card-hdr">
+        <div class="card-icon" style="border-color:rgba(232,160,32,.3)">🎓</div>
+        <div><div class="card-title">Daily Trading Lesson</div><div class="card-sub">#13 · STRUCTURED LESSON + QUIZ → NOTION TRADING LESSONS</div></div>
+      </div>
+      <div class="row">
+        <button class="hud-btn btn-gold" id="lessonBtn" onclick="runLesson()"><span>GENERATE DAILY LESSON</span></button>
+        <label class="notion-toggle"><input type="checkbox" id="lessonNotion" checked/> SAVE TO NOTION</label>
+      </div>
+      <div class="waveform" id="lessonWave">
+        <div class="wbar" style="animation-delay:0s;background:#e8a020"></div><div class="wbar" style="animation-delay:.1s;background:#e8a020"></div><div class="wbar" style="animation-delay:.2s;background:#e8a020"></div><div class="wbar" style="animation-delay:.3s;background:#e8a020"></div><div class="wbar" style="animation-delay:.4s;background:#e8a020"></div><div class="wbar" style="animation-delay:.5s;background:#e8a020"></div><div class="wbar" style="animation-delay:.6s;background:#e8a020"></div><div class="wbar" style="animation-delay:.7s;background:#e8a020"></div>
+        <span class="wave-lbl">GENERATING LESSON...</span>
+      </div>
+      <div class="output" id="lessonOutput">
+        <div class="out-bar"><span><span class="sdot" id="lessonDot"></span><span id="lessonStatus"></span></span><button class="copy-btn" onclick="copyOut('lessonBody')">COPY</button></div>
+        <div class="out-body" id="lessonBody"></div>
+        <div class="notion-res" id="lessonNotion"></div>
+      </div>
     </div>
-    <div class="history-section" style="margin-top:28px">
-      <div class="history-title">Synthesis History</div>
-      <div id="synthHistory"></div>
+    <div class="card">
+      <div class="card-rot-ring"></div>
+      <div class="card-hdr">
+        <div class="card-icon" style="border-color:rgba(232,160,32,.3)">💬</div>
+        <div><div class="card-title">Ask The Tutor</div><div class="card-sub">#13 · ANY TRADING QUESTION → IN-DEPTH ANSWER → NOTION</div></div>
+      </div>
+      <textarea class="hud-textarea" id="tutorQ" rows="3" placeholder="e.g. What is the difference between scalping and swing trading EUR/USD?"></textarea>
+      <div class="row">
+        <button class="hud-btn btn-gold" id="askBtn" onclick="runAsk()"><span>ASK TUTOR</span></button>
+        <label class="notion-toggle"><input type="checkbox" id="askNotion" checked/> SAVE TO NOTION</label>
+      </div>
+      <div class="waveform" id="askWave">
+        <div class="wbar" style="animation-delay:0s;background:#e8a020"></div><div class="wbar" style="animation-delay:.1s;background:#e8a020"></div><div class="wbar" style="animation-delay:.2s;background:#e8a020"></div><div class="wbar" style="animation-delay:.3s;background:#e8a020"></div><div class="wbar" style="animation-delay:.4s;background:#e8a020"></div><div class="wbar" style="animation-delay:.5s;background:#e8a020"></div>
+        <span class="wave-lbl">CONSULTING TUTOR...</span>
+      </div>
+      <div class="output" id="askOutput">
+        <div class="out-bar"><span><span class="sdot" id="askDot"></span><span id="askStatus"></span></span><button class="copy-btn" onclick="copyOut('askBody')">COPY</button></div>
+        <div class="out-body" id="askBody"></div>
+        <div class="notion-res" id="askNotion2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TRADE AI PANEL ══ -->
+  <div class="panel" id="panel-trade">
+    <div class="card">
+      <div class="card-rot-ring"></div>
+      <div class="card-hdr">
+        <div class="card-icon">📊</div>
+        <div><div class="card-title">Trade Analyzer · OANDA Demo</div><div class="card-sub">#2 · AUTO-DETECTS TRADES → ANALYSIS → GOOGLE SHEETS</div></div>
+      </div>
+      <div class="trade-status-bar">
+        <div class="trade-monitor-lbl"><span class="sdot dot-done" style="margin-right:4px"></span><span id="monitorStatus">Connecting to OANDA...</span></div>
+        <button class="reconnect-btn" onclick="initMonitor()">↺ RECONNECT</button>
+      </div>
+      <div class="open-positions-lbl">OPEN POSITIONS</div>
+      <div id="openTradesList"><div class="no-hist">Connecting to OANDA demo...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-rot-ring"></div>
+      <div class="card-hdr">
+        <div class="card-icon">📝</div>
+        <div><div class="card-title">Analysis Log</div><div class="card-sub">AUTO-GENERATED PRE & POST TRADE BREAKDOWNS</div></div>
+      </div>
+      <div class="trade-log-body" id="tradeLogBody"><div class="no-hist">Analysis will appear here automatically when trades are detected.</div></div>
+    </div>
+  </div>
+
+  <!-- ══ LOGS PANEL ══ -->
+  <div class="panel" id="panel-logs">
+    <div class="card">
+      <div class="card-rot-ring"></div>
+      <div class="card-hdr">
+        <div class="card-icon">📋</div>
+        <div><div class="card-title">System Logs</div><div class="card-sub">RESEARCH HISTORY · SYNTHESIS HISTORY</div></div>
+      </div>
+      <div class="hist-section">
+        <div class="hist-title">Research History</div>
+        <div id="resHist"></div>
+      </div>
+      <div class="hist-section" style="margin-top:20px">
+        <div class="hist-title">Synthesis History</div>
+        <div id="synthHist"></div>
+      </div>
+      <div class="hist-section" style="margin-top:20px">
+        <div class="hist-title">Tutor History</div>
+        <div id="tutorHist"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CONFIG PANEL ══ -->
+  <div class="panel" id="panel-config">
+    <div class="settings">
+      <div class="settings-title">⬡ SYSTEM CONFIGURATION</div>
+      <div><label>ANTHROPIC API KEY</label><input type="password" class="hud-input" id="anthropicKey" placeholder="sk-ant-..."/></div>
+      <div><label>NOTION INTEGRATION TOKEN</label><input type="password" class="hud-input" id="notionToken" placeholder="ntn_..."/></div>
+      <div><label>NOTION RESEARCH DB ID</label><input type="text" class="hud-input" id="notionResearchDb" placeholder="32-char ID"/></div>
+      <div><label>NOTION KNOWLEDGE BASE DB ID</label><input type="text" class="hud-input" id="notionKbDb" placeholder="32-char ID"/></div>
+      <div><label>NOTION TRADING LESSONS DB ID</label><input type="text" class="hud-input" id="notionLessonsDb" placeholder="32-char ID"/></div>
+      <div><label>OANDA API TOKEN</label><input type="password" class="hud-input" id="oandaToken" placeholder="Your OANDA token"/></div>
+      <div><label>OANDA ACCOUNT ID</label><input type="text" class="hud-input" id="oandaAccountId" placeholder="101-001-XXXXXXX-001"/></div>
+      <div style="grid-column:1/-1"><label>NOTE</label><div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#1a4060;line-height:1.6">Google Sheets credentials (GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY, GOOGLE_SHEET_ID) are stored securely in Netlify environment variables — not here.</div></div>
+      <button class="save-key-btn" onclick="saveKeys()">⬡ SAVE CONFIGURATION</button>
+      <div class="saved-badge" id="savedBadge">✓ CONFIGURATION SAVED</div>
     </div>
   </div>
 
@@ -453,931 +422,633 @@
 
 <script>
 // ══════════════════════════════════════════════
-// STATE
+// CANVAS ANIMATIONS
 // ══════════════════════════════════════════════
-let synthRawOutput = '';
-let synthArticleTitle = '';
-let synthArticleUrl = '';
+(function bgAnim(){
+  const c=document.getElementById('bg-canvas');
+  if(!c)return;
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight}
+  resize();window.addEventListener('resize',resize);
+  const ctx=c.getContext('2d');
+  function draw(){
+    const W=c.width,H=c.height,cx=W/2,cy=H*.42,t=Date.now()/1000;
+    ctx.clearRect(0,0,W,H);
+    [500,340,210,110].forEach((r,i)=>{
+      ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(0,180,255,${[.035,.05,.065,.055][i]})`;
+      ctx.lineWidth=1;ctx.stroke();
+    });
+    [[500,16,.033],[340,10,-.05],[210,7,.09],[110,5,-.14]].forEach(([r,spd,dir])=>{
+      const a=t*spd*dir;
+      const len=r*.5;
+      const x1=cx+Math.cos(a)*r,y1=cy+Math.sin(a)*r;
+      const x2=cx+Math.cos(a)*len,y2=cy+Math.sin(a)*len;
+      ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
+      ctx.strokeStyle=`rgba(0,180,255,${r>300?.14:r>180?.22:.35})`;
+      ctx.lineWidth=r>300?1.5:r>180?1.8:2.2;ctx.lineCap='round';ctx.stroke();
+      const a2=a+Math.PI*.7;
+      const x3=cx+Math.cos(a2)*r,y3=cy+Math.sin(a2)*r;
+      const x4=cx+Math.cos(a2)*len*.6,y4=cy+Math.sin(a2)*len*.6;
+      ctx.beginPath();ctx.moveTo(x3,y3);ctx.lineTo(x4,y4);
+      ctx.strokeStyle=`rgba(0,180,255,${r>300?.07:.12})`;
+      ctx.lineWidth=1;ctx.stroke();
+    });
+    for(let i=0;i<12;i++){
+      const a=(i/12)*Math.PI*2+t*.04;
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(a)*500,cy+Math.sin(a)*500);
+      ctx.lineTo(cx+Math.cos(a)*484,cy+Math.sin(a)*484);
+      ctx.strokeStyle='rgba(0,180,255,.16)';ctx.lineWidth=1;ctx.stroke();
+    }
+    const p=.5+.5*Math.sin(t*2.2);
+    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,55);
+    g.addColorStop(0,`rgba(0,180,255,${.18*p})`);g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,55,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,4+2*p,0,Math.PI*2);
+    ctx.fillStyle=`rgba(0,180,255,${.7+.3*p})`;ctx.fill();
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+(function reactorAnim(){
+  const c=document.getElementById('reactor-canvas');
+  if(!c)return;
+  const ctx=c.getContext('2d'),cx=26,cy=26;
+  function draw(){
+    const t=Date.now()/1000,p=.5+.5*Math.sin(t*2.5);
+    ctx.clearRect(0,0,52,52);
+    ctx.beginPath();ctx.arc(cx,cy,24,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(0,180,255,${.3+.3*p})`;ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,17,0,Math.PI*2);
+    ctx.strokeStyle='rgba(0,180,255,.14)';ctx.lineWidth=1;ctx.stroke();
+    const a1=t*1.3;
+    ctx.beginPath();ctx.arc(cx,cy,24,a1,a1+1.1);
+    ctx.strokeStyle='#00b4ff';ctx.lineWidth=2;ctx.lineCap='round';ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,24,a1+Math.PI,a1+Math.PI+.65);
+    ctx.strokeStyle='rgba(0,180,255,.4)';ctx.lineWidth=1.5;ctx.stroke();
+    const a2=-t*.85;
+    ctx.beginPath();ctx.arc(cx,cy,17,a2,a2+.85);
+    ctx.strokeStyle='rgba(0,180,255,.6)';ctx.lineWidth=1.5;ctx.lineCap='round';ctx.stroke();
+    const r=5+1.5*p;
+    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,r*1.6);
+    g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.4,'#00b4ff');g.addColorStop(1,'rgba(0,60,140,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+(function statusAnim(){
+  const c=document.getElementById('status-canvas');
+  if(!c)return;
+  const ctx=c.getContext('2d'),cx=55,cy=55;
+  function draw(){
+    const t=Date.now()/1000,p=.5+.5*Math.sin(t*2);
+    ctx.clearRect(0,0,110,110);
+    ctx.beginPath();ctx.arc(cx,cy,44,0,Math.PI*2);
+    ctx.strokeStyle='rgba(0,180,255,.07)';ctx.lineWidth=9;ctx.stroke();
+    const segs=[
+      {pct:.95,color:'#00ffaa',start:-Math.PI/2},
+      {pct:1,color:'#00ffaa',start:-Math.PI/2+.72},
+      {pct:.9,color:'#00b4ff',start:-Math.PI/2+1.55},
+      {pct:1,color:'#00b4ff',start:-Math.PI/2+2.38},
+    ];
+    segs.forEach(s=>{
+      ctx.beginPath();ctx.arc(cx,cy,44,s.start,s.start+s.pct*.58);
+      ctx.strokeStyle=s.color;ctx.lineWidth=9;ctx.lineCap='round';ctx.stroke();
+    });
+    const sweepA=t*.4;
+    ctx.beginPath();ctx.arc(cx,cy,44,sweepA,sweepA+.35);
+    ctx.strokeStyle=`rgba(255,255,255,${.3*p})`;ctx.lineWidth=3;ctx.lineCap='round';ctx.stroke();
+    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,18);
+    g.addColorStop(0,`rgba(0,180,255,${.18*p})`);g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,18,0,Math.PI*2);ctx.fill();
+    ctx.font='700 11px Rajdhani,sans-serif';ctx.fillStyle='#00b4ff';ctx.textAlign='center';
+    ctx.fillText('SYSTEMS',cx,cy-4);ctx.fillText('ONLINE',cx,cy+9);
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ══════════════════════════════════════════════
+// CLOCK & POLL COUNTDOWN
+// ══════════════════════════════════════════════
+function updateClock(){
+  const el=document.getElementById('sysTime');
+  if(el)el.textContent=new Date().toLocaleTimeString('en-US',{hour12:false})+' · '+new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+}
+updateClock();setInterval(updateClock,1000);
+
+let pollSec=299;
+setInterval(()=>{
+  pollSec--;if(pollSec<0)pollSec=299;
+  const el=document.getElementById('pollCountdown');
+  if(el)el.textContent=Math.floor(pollSec/60)+':'+(pollSec%60<10?'0':'')+pollSec%60;
+},1000);
+
+// ══════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════
+const TAB_IDS=['research','synth','tutor','trade','logs','config'];
+function switchTab(name){
+  document.querySelectorAll('.hex-btn').forEach((b,i)=>{
+    const active=TAB_IDS[i]===name;
+    b.classList.toggle('active',active);
+    const poly=b.querySelector('polygon');
+    if(poly){
+      poly.setAttribute('fill',active?'rgba(0,180,255,.1)':'rgba(0,0,0,.3)');
+      poly.setAttribute('stroke',active?'rgba(0,180,255,.4)':'rgba(0,180,255,.15)');
+    }
+  });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const el=document.getElementById('panel-'+name);
+  if(el)el.classList.add('active');
+  if(name==='trade')initMonitor();
+  if(name==='logs')renderLogs();
+}
 
 // ══════════════════════════════════════════════
 // KEYS
 // ══════════════════════════════════════════════
-function saveKeys() {
-  localStorage.setItem('agentAnthropicKey',    document.getElementById('anthropicKey').value.trim());
-  localStorage.setItem('agentNotionToken',      document.getElementById('notionToken').value.trim());
-  localStorage.setItem('agentNotionResearchDb', document.getElementById('notionResearchDb').value.trim());
-  localStorage.setItem('agentNotionKbDb',       document.getElementById('notionKbDb').value.trim());
-  localStorage.setItem('agentOandaToken',       document.getElementById('oandaToken').value.trim());
-  localStorage.setItem('agentOandaAccountId',   document.getElementById('oandaAccountId').value.trim());
-  localStorage.setItem('agentNotionLessonsDb',  document.getElementById('notionLessonsDb').value.trim());
-  const badge = document.getElementById('savedBadge');
-  badge.classList.add('show');
-  setTimeout(() => badge.classList.remove('show'), 2500);
+function saveKeys(){
+  const map={anthropicKey:'agentAnthropicKey',notionToken:'agentNotionToken',notionResearchDb:'agentNotionResearchDb',notionKbDb:'agentNotionKbDb',notionLessonsDb:'agentNotionLessonsDb',oandaToken:'agentOandaToken',oandaAccountId:'agentOandaAccountId'};
+  for(const [id,key] of Object.entries(map)){const el=document.getElementById(id);if(el)localStorage.setItem(key,el.value.trim())}
+  const b=document.getElementById('savedBadge');b.classList.add('show');setTimeout(()=>b.classList.remove('show'),2500);
 }
-
-function loadKeys() {
-  const fields = {
-    anthropicKey:    'agentAnthropicKey',
-    notionToken:     'agentNotionToken',
-    notionResearchDb:'agentNotionResearchDb',
-    notionKbDb:      'agentNotionKbDb',
-    oandaToken:      'agentOandaToken',
-    oandaAccountId:  'agentOandaAccountId',
-    notionLessonsDb: 'agentNotionLessonsDb',
-  };
-  for (const [id, key] of Object.entries(fields)) {
-    const el = document.getElementById(id);
-    if (el) el.value = localStorage.getItem(key) || '';
-  }
+function loadKeys(){
+  const map={anthropicKey:'agentAnthropicKey',notionToken:'agentNotionToken',notionResearchDb:'agentNotionResearchDb',notionKbDb:'agentNotionKbDb',notionLessonsDb:'agentNotionLessonsDb',oandaToken:'agentOandaToken',oandaAccountId:'agentOandaAccountId'};
+  for(const [id,key] of Object.entries(map)){const el=document.getElementById(id);if(el)el.value=localStorage.getItem(key)||''}
 }
-
-function getKey(k) { return localStorage.getItem(k) || ''; }
+function getKey(k){return localStorage.getItem(k)||''}
 
 // ══════════════════════════════════════════════
-// TABS
+// CLAUDE API
 // ══════════════════════════════════════════════
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    const names = ['research','synth','tutor','trades','history'];
-    t.classList.toggle('active', names[i] === name);
+async function callClaude(messages,system){
+  const key=getKey('agentAnthropicKey');
+  if(!key)throw new Error('No Anthropic API key saved. Go to CONFIG tab.');
+  const res=await fetch('/.netlify/functions/claude-proxy',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({apiKey:key,payload:{model:'claude-sonnet-4-6',max_tokens:1000,system,messages}})
   });
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('panel-' + name).classList.add('active');
-  if (name === 'history') renderHistory();
-  if (name === 'trades') initTradeMonitor();
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`API error ${res.status}`)}
+  const data=await res.json();
+  return data.content.map(b=>b.text||'').join('');
 }
 
 // ══════════════════════════════════════════════
-// CLAUDE API CALL
+// NOTION
 // ══════════════════════════════════════════════
-async function callClaude(messages, system) {
-  const key = getKey('agentAnthropicKey');
-  if (!key) throw new Error('No Anthropic API key saved. Fill in Settings above.');
-
-  const res = await fetch('/.netlify/functions/claude-proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      apiKey: key,
-      payload: {
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system,
-        messages,
-      }
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `API error ${res.status}`);
-  }
-  const data = await res.json();
-  return data.content.map(b => b.text || '').join('');
-}
-
-// ══════════════════════════════════════════════
-// NOTION API HELPERS
-// ══════════════════════════════════════════════
-async function notionRequest(path, body) {
-  const token = getKey('agentNotionToken');
-  if (!token) throw new Error('No Notion token saved.');
-  const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.notion.com/v1/' + path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, body }),
-  });
-  // fallback: direct (works if CORS allows)
-  if (!res.ok) throw new Error('Notion proxy error');
-  return res.json();
-}
-
-async function pushToNotion(dbId, title, content, type='research') {
-  const token = getKey('agentNotionToken');
-  if (!token) throw new Error('No Notion token.');
-  if (!dbId)  throw new Error('No Notion database ID for ' + type);
-
-  const allBlocks = chunkToBlocks(content);
-  const today = new Date().toISOString().split('T')[0];
-  // Generate a short topic summary from the title (first 80 chars)
-  const topic = title.length > 80 ? title.slice(0, 80) + '...' : title;
-  const payload = {
-    parent: { database_id: dbId },
-    properties: {
-      Name:   { title:     [{ text: { content: title } }] },
-      Topic:  { rich_text: [{ text: { content: topic } }] },
-      Date:   { date:      { start: today } },
-      Type:   { select:    { name: type === 'research' ? 'Research Report' : 'Knowledge Base' } },
-      Status: { select:    { name: 'Unread' } },
-    },
-  };
-
-  const res = await fetch('/.netlify/functions/notion-proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, endpoint: 'pages', body: payload, blocks: allBlocks }),
-  });
-
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error('Notion push failed: ' + txt.slice(0, 120));
-  }
-  return res.json();
-}
-
-function chunkToBlocks(text) {
-  // Convert markdown-lite text to Notion blocks
-  const lines = text.split('\n');
-  const blocks = [];
-  for (const line of lines) {
-    if (line.startsWith('## ')) {
-      blocks.push({ object:'block', type:'heading_2', heading_2:{ rich_text:[{type:'text',text:{content:line.slice(3)}}]}});
-    } else if (line.startsWith('### ')) {
-      blocks.push({ object:'block', type:'heading_3', heading_3:{ rich_text:[{type:'text',text:{content:line.slice(4)}}]}});
-    } else if (line.startsWith('> ')) {
-      blocks.push({ object:'block', type:'quote', quote:{ rich_text:[{type:'text',text:{content:line.slice(2)}}]}});
-    } else if (line.startsWith('- ')) {
-      blocks.push({ object:'block', type:'bulleted_list_item', bulleted_list_item:{ rich_text:[{type:'text',text:{content:line.slice(2)}}]}});
-    } else if (line.trim() === '---') {
-      blocks.push({ object:'block', type:'divider', divider:{}});
-    } else if (line.trim()) {
-      blocks.push({ object:'block', type:'paragraph', paragraph:{ rich_text:[{type:'text',text:{content:line}}]}});
-    }
+function chunkToBlocks(text){
+  const blocks=[];
+  for(const line of text.split('\n')){
+    if(line.startsWith('## '))blocks.push({object:'block',type:'heading_2',heading_2:{rich_text:[{type:'text',text:{content:line.slice(3)}}]}});
+    else if(line.startsWith('### '))blocks.push({object:'block',type:'heading_3',heading_3:{rich_text:[{type:'text',text:{content:line.slice(4)}}]}});
+    else if(line.startsWith('> '))blocks.push({object:'block',type:'quote',quote:{rich_text:[{type:'text',text:{content:line.slice(2)}}]}});
+    else if(line.startsWith('- '))blocks.push({object:'block',type:'bulleted_list_item',bulleted_list_item:{rich_text:[{type:'text',text:{content:line.slice(2)}}]}});
+    else if(line.trim()==='---')blocks.push({object:'block',type:'divider',divider:{}});
+    else if(line.trim())blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:line}}]}});
   }
   return blocks;
 }
+async function pushToNotion(dbId,title,content){
+  const token=getKey('agentNotionToken');
+  if(!token)throw new Error('No Notion token');
+  if(!dbId)throw new Error('No database ID');
+  const res=await fetch('/.netlify/functions/notion-proxy',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({token,endpoint:'pages',body:{
+      parent:{database_id:dbId},
+      properties:{Name:{title:[{text:{content:title}}]}},
+    },blocks:chunkToBlocks(content+'\n\nDate: '+new Date().toLocaleDateString())})
+  });
+  if(!res.ok)throw new Error('Notion push failed: '+(await res.text()).slice(0,100));
+  return res.json();
+}
 
 // ══════════════════════════════════════════════
-// ARTICLE FETCH (via allorigins proxy)
+// ARTICLE FETCH
 // ══════════════════════════════════════════════
-async function fetchArticle(url) {
-  const res = await fetch('/.netlify/functions/fetch-proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
-  });
-  if (!res.ok) throw new Error('Could not fetch article. The site may block scrapers.');
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
+async function fetchArticle(url){
+  const res=await fetch('/.netlify/functions/fetch-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+  if(!res.ok)throw new Error('Could not fetch article');
+  const data=await res.json();
+  if(data.error)throw new Error(data.error);
   return data.text;
 }
 
 // ══════════════════════════════════════════════
-// RENDER MARKDOWN-LITE
+// MARKDOWN RENDER
 // ══════════════════════════════════════════════
-function renderMd(text) {
+function renderMd(text){
   return text
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-    .replace(/^- (.+)$/gm, '• $1')
-    .replace(/^---$/gm, '<hr/>')
-    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
-    .replace(/\n/g, '<br/>');
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>')
+    .replace(/^- (.+)$/gm,'• $1')
+    .replace(/^---$/gm,'<hr/>')
+    .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2" target="_blank">$1</a>')
+    .replace(/\n/g,'<br/>');
 }
 
 // ══════════════════════════════════════════════
 // HISTORY
 // ══════════════════════════════════════════════
-function saveToHistory(type, query, output) {
-  const key = 'agentHistory_' + type;
-  const history = JSON.parse(localStorage.getItem(key) || '[]');
-  history.unshift({ query, output, date: new Date().toLocaleString() });
-  localStorage.setItem(key, JSON.stringify(history.slice(0, 30)));
+function saveHist(type,query,output){
+  const k='agentHist_'+type;
+  const h=JSON.parse(localStorage.getItem(k)||'[]');
+  h.unshift({query,output,date:new Date().toLocaleString()});
+  localStorage.setItem(k,JSON.stringify(h.slice(0,30)));
 }
-
-function renderHistory() {
-  ['research','synth'].forEach(type => {
-    const history = JSON.parse(localStorage.getItem('agentHistory_' + type) || '[]');
-    const el = document.getElementById(type + 'History');
-    if (!history.length) { el.innerHTML = '<div class="no-history">No history yet.</div>'; return; }
-    el.innerHTML = history.map(h => `
-      <div class="history-item">
-        <div class="h-query">${h.query}</div>
-        <div class="h-meta">${h.date}</div>
-      </div>`).join('');
+function renderLogs(){
+  ['res','synth','tutor'].forEach(type=>{
+    const h=JSON.parse(localStorage.getItem('agentHist_'+type)||'[]');
+    const el=document.getElementById(type+'Hist');
+    if(!el)return;
+    if(!h.length){el.innerHTML='<div class="no-hist">No history yet.</div>';return}
+    el.innerHTML=h.map(i=>`<div class="hist-item"><div class="h-q">${i.query}</div><div class="h-m">${i.date}</div></div>`).join('');
   });
 }
 
 // ══════════════════════════════════════════════
 // RESEARCH AGENT
 // ══════════════════════════════════════════════
-async function runResearch() {
-  const q = document.getElementById('researchQ').value.trim();
-  if (!q) return;
-
-  const btn     = document.getElementById('researchBtn');
-  const output  = document.getElementById('researchOutput');
-  const body    = document.getElementById('researchBody');
-  const dot     = document.getElementById('researchDot');
-  const status  = document.getElementById('researchStatus');
-  const notionR = document.getElementById('researchNotionResult');
-
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Researching...';
-  output.classList.add('show');
-  notionR.classList.remove('show');
-  dot.className = 'status-dot dot-thinking';
-  status.textContent = 'Thinking...';
-  body.innerHTML = '';
-
-  try {
-    const system = `You are a world-class research analyst specializing in trading, markets, and finance.
-When given a research question, produce a deeply structured report in this exact format:
+async function runResearch(){
+  const q=document.getElementById('researchQ').value.trim();if(!q)return;
+  const btn=document.getElementById('researchBtn');
+  const wave=document.getElementById('researchWave');
+  const out=document.getElementById('researchOutput');
+  const body=document.getElementById('resBody');
+  const dot=document.getElementById('resDot');
+  const status=document.getElementById('resStatus');
+  const notionEl=document.getElementById('resNotion');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> PROCESSING...';
+  wave.classList.add('show');out.classList.remove('show');notionEl.classList.remove('show');
+  try{
+    const system=`You are a world-class research analyst specializing in trading, markets, and finance. Produce a deeply structured report:
 
 ## TL;DR
-3 sentence summary of the key answer.
+3 sentence summary.
 
 ## Key Findings
-- Finding 1 (most important first)
+- Finding 1
 - Finding 2
 - Finding 3
 - Finding 4
 - Finding 5
 
 ## Evidence & Analysis
-Detailed paragraphs supporting each finding with reasoning.
+Detailed paragraphs supporting each finding.
 
 ## Conflicting Views
-Where experts, data, or strategies disagree on this topic.
+Where experts or data disagree.
 
 ## Practical Application
-How a swing/scalp trader should act on this information.
+How a swing/scalp trader should act on this.
 
 ## Sources & Further Reading
-- Suggested source or concept 1
-- Suggested source or concept 2
-- Suggested source or concept 3
+- Source 1
+- Source 2
+- Source 3
 
 ---
 Report generated: ${new Date().toLocaleString()}`;
-
-    const result = await callClaude([{ role:'user', content: `Research this question thoroughly: ${q}` }], system);
-
-    body.innerHTML = renderMd(result);
-    dot.className = 'status-dot dot-done';
-    status.textContent = 'Complete';
-    saveToHistory('research', q, result);
-
-    if (document.getElementById('researchNotion').checked) {
-      status.textContent = 'Pushing to Notion...';
-      try {
-        const dbId = getKey('agentNotionResearchDb');
-        await pushToNotion(dbId, q, result, 'Research Report');
-        notionR.textContent = '✓ Saved to Notion Research database';
-        notionR.classList.add('show');
-        status.textContent = 'Complete · Saved to Notion';
-      } catch(e) {
-        notionR.textContent = '⚠ Notion push failed: ' + e.message;
-        notionR.classList.add('show');
-        status.textContent = 'Complete (Notion failed)';
-      }
+    const result=await callClaude([{role:'user',content:'Research thoroughly: '+q}],system);
+    wave.classList.remove('show');
+    out.classList.add('show');
+    body.innerHTML=renderMd(result);
+    dot.className='sdot dot-done';status.textContent='COMPLETE';
+    saveHist('res',q,result);
+    if(document.getElementById('researchNotion').checked){
+      status.textContent='SAVING TO NOTION...';
+      try{await pushToNotion(getKey('agentNotionResearchDb'),'Research: '+q.slice(0,80),result);notionEl.textContent='✓ SAVED TO NOTION RESEARCH DATABASE';notionEl.classList.add('show');status.textContent='COMPLETE · SYNCED TO NOTION'}
+      catch(e){notionEl.textContent='⚠ NOTION FAILED: '+e.message;notionEl.classList.add('show')}
     }
-
-  } catch(e) {
-    body.innerHTML = '⚠ Error: ' + e.message;
-    dot.className = 'status-dot dot-error';
-    status.textContent = 'Error';
+  }catch(e){
+    wave.classList.remove('show');out.classList.add('show');
+    body.innerHTML='⚠ '+e.message;dot.className='sdot dot-err';status.textContent='ERROR';
   }
-
-  btn.disabled = false;
-  btn.innerHTML = '<span>Run Research</span>';
+  btn.disabled=false;btn.innerHTML='<span>EXECUTE QUERY</span>';
 }
 
 // ══════════════════════════════════════════════
 // SYNTHESIS AGENT
 // ══════════════════════════════════════════════
-async function runSynth() {
-  const url = document.getElementById('synthUrl').value.trim();
-  const pastedCheck = document.getElementById('synthText').value.trim();
-  if (!url && !pastedCheck) return;
-
-  const btn    = document.getElementById('synthBtn');
-  const output = document.getElementById('synthOutput');
-  const body   = document.getElementById('synthBody');
-  const dot    = document.getElementById('synthDot');
-  const status = document.getElementById('synthStatus');
-  const tBox   = document.getElementById('takeawayBox');
-  const notionR = document.getElementById('synthNotionResult');
-
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Fetching...';
-  output.classList.add('show');
-  tBox.classList.remove('show');
-  notionR.classList.remove('show');
-  dot.className = 'status-dot dot-thinking';
-  status.textContent = 'Fetching article...';
-  body.innerHTML = '';
-
-  try {
-    let articleText = '';
-    const pastedText = document.getElementById('synthText').value.trim();
-
-    if (pastedText) {
-      // Use pasted text directly
-      articleText = pastedText.slice(0, 12000);
-      status.textContent = 'Synthesizing pasted text...';
-    } else if (url) {
-      // Try fetching the URL
-      status.textContent = 'Fetching article...';
-      articleText = await fetchArticle(url);
-      status.textContent = 'Synthesizing with Claude...';
-    } else {
-      throw new Error('Please enter a URL or paste article text.');
-    }
-
-    status.textContent = 'Synthesizing with Claude...';
-    const system = `You are a sharp research synthesizer. Given raw article text and its URL, produce a structured breakdown in this format:
+let synthRaw='',synthTitle='',synthUrl2='';
+async function runSynth(){
+  const url=document.getElementById('synthUrl').value.trim();
+  const pasted=document.getElementById('synthText').value.trim();
+  if(!url&&!pasted)return;
+  const btn=document.getElementById('synthBtn');
+  const wave=document.getElementById('synthWave');
+  const out=document.getElementById('synthOutput');
+  const body=document.getElementById('synthBody');
+  const dot=document.getElementById('synthDot');
+  const status=document.getElementById('synthStatus');
+  const tbox=document.getElementById('takeawayBox');
+  const notionEl=document.getElementById('synthNotion2');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> FETCHING...';
+  wave.classList.add('show');out.classList.remove('show');tbox.classList.remove('show');notionEl.classList.remove('show');
+  try{
+    let articleText='';
+    if(pasted){articleText=pasted.slice(0,12000);status.textContent='SYNTHESIZING PASTED TEXT...';}
+    else{status.textContent='FETCHING ARTICLE...';articleText=await fetchArticle(url);}
+    synthUrl2=url||'(pasted text)';
+    btn.innerHTML='<span class="spinner"></span> SYNTHESIZING...';
+    const system=`You are a sharp research synthesizer. Given article content, produce:
 
 ## Article Overview
-**Title:** (infer from content)
+**Title:** (infer)
 **Source:** (infer domain)
-**Core Argument:** 2-3 sentence summary of the article's central claim.
+**Core Argument:** 2-3 sentence summary.
 
 ## Key Quotes
-> Quote 1 that best captures a central idea
-> Quote 2 that supports a key claim
-> Quote 3 that is most actionable or surprising
+> Quote 1
+> Quote 2
+> Quote 3
 
 ## Evidence & Data
-- Key data point or statistic 1
-- Key data point or statistic 2
-- Key evidence 3
+- Data point 1
+- Data point 2
+- Data point 3
 
 ## What This Means for Traders
-Practical implications for swing and scalp trading based on this article.
+Practical implications for swing and scalp trading.
 
 ## Agree / Disagree / Verify
-- Agree: What in this article is well-supported
-- Disagree or Question: What needs scrutiny
-- Verify: What to look up next
+- Agree: well-supported points
+- Question: needs scrutiny
+- Verify: what to look up next
 
 ---`;
-
-    synthArticleUrl = url;
-    const result = await callClaude([{
-      role: 'user',
-      content: `Article URL: ${url}\n\nArticle content:\n${articleText}\n\nPlease synthesize this article.`
-    }], system);
-
-    synthRawOutput = result;
-    // Extract title
-    const titleMatch = result.match(/\*\*Title:\*\*\s*(.+)/);
-    synthArticleTitle = titleMatch ? titleMatch[1].trim() : url.slice(0,60);
-
-    body.innerHTML = renderMd(result);
-    dot.className = 'status-dot dot-done';
-    status.textContent = 'Complete — add your takeaway below';
-    tBox.classList.add('show');
-    saveToHistory('synth', url, result);
-
-  } catch(e) {
-    body.innerHTML = '⚠ Error: ' + e.message;
-    dot.className = 'status-dot dot-error';
-    status.textContent = 'Error';
+    const result=await callClaude([{role:'user',content:`URL: ${url||'N/A'}\n\nContent:\n${articleText}\n\nSynthesize this.`}],system);
+    synthRaw=result;
+    const tm=result.match(/\*\*Title:\*\*\s*(.+)/);
+    synthTitle=tm?tm[1].trim():(url||'Article').slice(0,60);
+    wave.classList.remove('show');out.classList.add('show');
+    body.innerHTML=renderMd(result);
+    dot.className='sdot dot-done';status.textContent='COMPLETE — ADD YOUR TAKEAWAY BELOW';
+    tbox.classList.add('show');
+    saveHist('synth',url||'(pasted)',result);
+  }catch(e){
+    wave.classList.remove('show');out.classList.add('show');
+    body.innerHTML='⚠ '+e.message;dot.className='sdot dot-err';status.textContent='ERROR';
   }
-
-  btn.disabled = false;
-  btn.innerHTML = '<span>Synthesize Article</span>';
+  btn.disabled=false;btn.innerHTML='<span>SYNTHESIZE</span>';
 }
-
-async function submitTakeaway() {
-  const takeaway  = document.getElementById('takeawayText').value.trim();
-  const notionR   = document.getElementById('synthNotionResult');
-  const status    = document.getElementById('synthStatus');
-  const tBox      = document.getElementById('takeawayBox');
-
-  const fullContent = synthRawOutput
-    + '\n\n## My Takeaway\n'
-    + (takeaway || '(no takeaway added)')
-    + '\n\n**Source URL:** ' + synthArticleUrl;
-
-  if (document.getElementById('synthNotion').checked) {
-    status.textContent = 'Pushing to Notion...';
-    try {
-      const dbId = getKey('agentNotionKbDb');
-      await pushToNotion(dbId, synthArticleTitle, fullContent, 'Knowledge Base');
-      notionR.textContent = '✓ Saved to Notion Knowledge Base';
-      notionR.classList.add('show');
-      status.textContent = 'Complete · Saved to Notion';
-    } catch(e) {
-      notionR.textContent = '⚠ Notion push failed: ' + e.message;
-      notionR.classList.add('show');
-      status.textContent = 'Complete (Notion failed)';
-    }
+async function submitTakeaway(){
+  const ta=document.getElementById('takeawayText').value.trim();
+  const notionEl=document.getElementById('synthNotion2');
+  const status=document.getElementById('synthStatus');
+  const tbox=document.getElementById('takeawayBox');
+  const full=synthRaw+'\n\n## My Takeaway\n'+(ta||'(none)')+'\n\nSource: '+synthUrl2;
+  if(document.getElementById('synthNotion').checked){
+    status.textContent='PUSHING TO NOTION...';
+    try{await pushToNotion(getKey('agentNotionKbDb'),synthTitle,full);notionEl.textContent='✓ SAVED TO NOTION KNOWLEDGE BASE';notionEl.classList.add('show');status.textContent='COMPLETE · SYNCED TO NOTION';}
+    catch(e){notionEl.textContent='⚠ NOTION FAILED: '+e.message;notionEl.classList.add('show');}
   }
-
-  tBox.classList.remove('show');
-}
-
-// ══════════════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════════════
-function copyOutput(id) {
-  const text = document.getElementById(id).innerText;
-  navigator.clipboard.writeText(text);
-}
-
-// ══════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════
-loadKeys();
-
-// ══════════════════════════════════════════════
-// OANDA API
-// ══════════════════════════════════════════════
-async function oandaFetch(path) {
-  const token     = getKey('agentOandaToken');
-  const accountId = getKey('agentOandaAccountId');
-  if (!token || !accountId) throw new Error('OANDA credentials not saved.');
-
-  const res = await fetch('/.netlify/functions/oanda-proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, accountId, path }),
-  });
-  if (!res.ok) throw new Error('OANDA fetch failed');
-  return res.json();
-}
-
-// ══════════════════════════════════════════════
-// TRADE MONITOR (polls OANDA every 5 min)
-// ══════════════════════════════════════════════
-let tradeMonitorInterval = null;
-let knownOpenTrades = {};
-let knownClosedTrades = new Set();
-
-async function initTradeMonitor() {
-  updateMonitorStatus('Connecting to OANDA...');
-  try {
-    await pollOanda();
-    updateMonitorStatus('Live · polling every 5 min');
-    if (tradeMonitorInterval) clearInterval(tradeMonitorInterval);
-    tradeMonitorInterval = setInterval(pollOanda, 5 * 60 * 1000);
-  } catch(e) {
-    updateMonitorStatus('⚠ ' + e.message);
-  }
-}
-
-function updateMonitorStatus(msg) {
-  const el = document.getElementById('monitorStatus');
-  if (el) el.textContent = msg;
-}
-
-async function pollOanda() {
-  // Fetch open trades
-  const openData = await oandaFetch('/openTrades');
-  const trades = openData.trades || [];
-
-  // Detect NEW open trades
-  for (const trade of trades) {
-    if (!knownOpenTrades[trade.id]) {
-      knownOpenTrades[trade.id] = trade;
-      await analyzeNewTrade(trade);
-    }
-  }
-
-  // Detect CLOSED trades (were open, now gone)
-  const openIds = new Set(trades.map(t => t.id));
-  for (const [id, trade] of Object.entries(knownOpenTrades)) {
-    if (!openIds.has(id) && !knownClosedTrades.has(id)) {
-      knownClosedTrades.add(id);
-      delete knownOpenTrades[id];
-      await analyzeClosedTrade(trade);
-    }
-  }
-
-  // Refresh trade list UI
-  renderOpenTrades(trades);
-}
-
-function renderOpenTrades(trades) {
-  const el = document.getElementById('openTradesList');
-  if (!el) return;
-  if (!trades.length) {
-    el.innerHTML = '<div class="no-history">No open trades detected on OANDA demo account.</div>';
-    return;
-  }
-  el.innerHTML = trades.map(t => {
-    const dir = parseInt(t.currentUnits) > 0 ? 'LONG' : 'SHORT';
-    const dirColor = dir === 'LONG' ? 'var(--accent)' : 'var(--danger)';
-    const pl = parseFloat(t.unrealizedPL || 0).toFixed(2);
-    const plColor = pl >= 0 ? 'var(--accent)' : 'var(--danger)';
-    return `
-    <div class="history-item">
-      <div>
-        <div class="h-query">${t.instrument} · <span style="color:${dirColor}">${dir}</span></div>
-        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px">
-          Entry: ${parseFloat(t.price).toFixed(5)} · Units: ${Math.abs(t.currentUnits)}
-        </div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-family:var(--mono);font-size:13px;color:${plColor}">${pl >= 0 ? '+' : ''}${pl}</div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px">Unrealized P&L</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function analyzeNewTrade(trade) {
-  const dir = parseInt(trade.currentUnits) > 0 ? 'Long' : 'Short';
-  const units = Math.abs(trade.currentUnits);
-  addTradeLog(`🟢 New trade detected: ${trade.instrument} ${dir} · ${units} units @ ${parseFloat(trade.price).toFixed(5)} — running analysis...`);
-
-  const system = `You are an expert FOREX trading coach analyzing a paper trade for a beginner-intermediate EUR/USD trader.
-Be specific, educational, and constructive. Format your response as:
-
-## Pre-Trade Analysis
-**Instrument:** | **Direction:** | **Entry:** | **Units:**
-
-## Setup Quality Checklist
-- [ ] Trend alignment (is this trade with or against the trend?)
-- [ ] Key level (is entry near support/resistance?)
-- [ ] Risk assessment (position size appropriate for demo?)
-- [ ] Session timing (is this a good trading session for EUR/USD?)
-
-## What To Watch
-Key levels to monitor while this trade is open.
-
-## Suggested Stop Loss & Take Profit
-Based on typical EUR/USD price action.
-
-## Coaching Note
-One key lesson this trade setup teaches.`;
-
-  try {
-    const result = await callClaude([{
-      role: 'user',
-      content: `Analyze this new paper trade:
-Instrument: ${trade.instrument}
-Direction: ${dir}
-Entry Price: ${trade.price}
-Units: ${units}
-Time: ${new Date().toLocaleString()}`
-    }], system);
-
-    // Show in trade log
-    addTradeLog(result);
-
-  } catch(e) {
-    addTradeLog('⚠ Analysis failed: ' + e.message);
-  }
-}
-
-async function analyzeClosedTrade(trade) {
-  const dir = parseInt(trade.currentUnits) > 0 ? 'Long' : 'Short';
-  const pl  = parseFloat(trade.unrealizedPL || 0);
-  const winLoss = pl >= 0 ? 'Win' : 'Loss';
-  addTradeLog(`🔴 Trade closed: ${trade.instrument} — running post-trade breakdown...`);
-
-  const system = `You are an expert FOREX trading coach delivering a post-trade breakdown for a beginner-intermediate EUR/USD paper trader.
-Be honest, specific, and educational. Format your response as:
-
-## Post-Trade Breakdown
-**Instrument:** | **Direction:** | **Entry:** | **Result:**
-
-## What Went Right
-Specific positives about this trade.
-
-## What To Improve
-Honest critique and specific improvements for next time.
-
-## Key Lesson
-The single most important thing to take away from this trade.
-
-## Trade Score
-Grade this trade A/B/C/D based on execution quality (not outcome). Explain the grade.`;
-
-  try {
-    const result = await callClaude([{
-      role: 'user',
-      content: `Analyze this closed paper trade:
-Instrument: ${trade.instrument}
-Direction: ${dir}
-Entry Price: ${trade.price}
-P&L at close: ${pl}
-Time open: ${new Date(trade.openTime).toLocaleString()}
-Closed: ${new Date().toLocaleString()}`
-    }], system);
-
-    addTradeLog(result);
-
-    // ── Push to Google Sheets ──
-    try {
-      const closeDate = new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-      const tradeData = {
-        symbol:     trade.instrument,
-        date:       closeDate,
-        direction:  dir,
-        entryPrice: parseFloat(trade.price).toFixed(5),
-        closePrice: '', // OANDA doesn't return close price on open trade object; left for formula
-        winLoss,
-        size:       Math.abs(parseInt(trade.currentUnits)),
-        fee:        0,
-        profit:     pl.toFixed(2),
-      };
-      const sheetRes = await fetch('/.netlify/functions/sheets-proxy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tradeData }),
-      });
-      const sheetData = await sheetRes.json();
-      if (sheetData.success) {
-        addTradeLog(`✓ Trade logged to Google Sheets (row ${sheetData.row})`);
-      } else {
-        addTradeLog(`⚠ Sheets log failed: ${sheetData.error}`);
-      }
-    } catch(e) {
-      addTradeLog('⚠ Sheets log error: ' + e.message);
-    }
-
-  } catch(e) {
-    addTradeLog('⚠ Breakdown failed: ' + e.message);
-  }
-}
-
-function addTradeLog(text) {
-  const el = document.getElementById('tradeLogBody');
-  if (!el) return;
-  const entry = document.createElement('div');
-  entry.style.cssText = 'border-bottom:1px solid var(--border);padding:14px 0;';
-  entry.innerHTML = renderMd(text);
-  el.prepend(entry);
+  tbox.classList.remove('show');
 }
 
 // ══════════════════════════════════════════════
 // TRADING TUTOR
 // ══════════════════════════════════════════════
-async function runDailyLesson() {
-  const btn    = document.getElementById('lessonBtn');
-  const output = document.getElementById('lessonOutput');
-  const body   = document.getElementById('lessonBody');
-  const dot    = document.getElementById('lessonDot');
-  const status = document.getElementById('lessonStatus');
-  const notionR= document.getElementById('lessonNotionResult');
+const TOPICS=['Support and Resistance on EUR/USD','Reading candlestick patterns for scalping','London and New York session overlap','RSI for entry timing on EUR/USD','EMA vs SMA for swing trading','Fibonacci retracements in FOREX','Risk/reward ratios and position sizing','Bid/ask spread impact on scalping','Trend identification on higher timeframes','News trading: economic events and EUR/USD','MACD for momentum trading','Bollinger Bands for volatility entries'];
 
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Generating lesson...';
-  output.classList.add('show');
-  notionR.classList.remove('show');
-  dot.className = 'status-dot dot-thinking';
-  status.textContent = 'Building your lesson...';
-  body.innerHTML = '';
+async function runLesson(){
+  const topic=TOPICS[Math.floor(Math.random()*TOPICS.length)];
+  const btn=document.getElementById('lessonBtn');
+  const wave=document.getElementById('lessonWave');
+  const out=document.getElementById('lessonOutput');
+  const body=document.getElementById('lessonBody');
+  const dot=document.getElementById('lessonDot');
+  const status=document.getElementById('lessonStatus');
+  const notionEl=document.getElementById('lessonNotion');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> GENERATING...';
+  wave.classList.add('show');out.classList.remove('show');notionEl.classList.remove('show');
+  try{
+    const system=`You are an expert FOREX trading tutor teaching a beginner-intermediate EUR/USD trader learning swing and scalp trading. Deliver an engaging practical lesson:
 
-  const topics = [
-    'Support and Resistance levels on EUR/USD',
-    'Reading candlestick patterns for scalping',
-    'Understanding the London and New York session overlap',
-    'Using RSI for entry timing on EUR/USD',
-    'Moving averages: EMA vs SMA for swing trading',
-    'Fibonacci retracements in FOREX',
-    'Risk/reward ratios and position sizing for demo trading',
-    'Understanding bid/ask spread and its impact on scalping',
-    'Trend identification using higher timeframes',
-    'News trading: how economic events move EUR/USD',
-    'Understanding MACD for momentum trading',
-    'Bollinger Bands for volatility-based entries',
-  ];
-  const topic = topics[Math.floor(Math.random() * topics.length)];
-
-  const system = `You are an expert FOREX trading tutor teaching a beginner-intermediate student who understands charts and a few strategies. They are paper trading EUR/USD and learning swing and scalp trading.
-
-Deliver an engaging, practical lesson. Format exactly as:
-
-## Today's Lesson: {topic}
+## Today's Lesson: ${topic}
 
 ### What It Is
-Clear explanation in plain language (2-3 paragraphs).
+Clear explanation (2-3 paragraphs).
 
 ### Why It Matters for EUR/USD
 Specific application to this pair.
 
 ### How To Use It
-Step-by-step practical guide with specific examples.
+Step-by-step practical guide with examples.
 
 ### Common Mistakes
-3 mistakes beginners make with this concept.
+3 mistakes beginners make.
 
 ### Real Example
-Walk through a specific EUR/USD scenario using this concept.
+Specific EUR/USD scenario using this concept.
 
 ---
 
 ## Quiz
-Test your understanding with 3 questions:
-
 **Q1:** (question)
-**Q2:** (question)  
+**Q2:** (question)
 **Q3:** (question)
 
-*Answers at the bottom*
+*Answers below*
 
 ---
 
 **A1:** (answer)
 **A2:** (answer)
 **A3:** (answer)`;
-
-  try {
-    const result = await callClaude([{
-      role: 'user',
-      content: `Generate today's trading lesson on: ${topic}`
-    }], system);
-
-    body.innerHTML = renderMd(result);
-    dot.className = 'status-dot dot-done';
-    status.textContent = 'Complete';
-    saveToHistory('tutor', 'Daily Lesson: ' + topic, result);
-
-    const dbId = getKey('agentNotionLessonsDb');
-    if (dbId) {
-      status.textContent = 'Saving to Notion...';
-      try {
-        await pushToNotion(dbId, 'Daily Lesson: ' + topic, result, 'Daily Lesson');
-        notionR.textContent = '✓ Saved to Notion Trading Lessons';
-        notionR.classList.add('show');
-        status.textContent = 'Complete · Saved to Notion';
-      } catch(e) {
-        notionR.textContent = '⚠ Notion failed: ' + e.message;
-        notionR.classList.add('show');
-      }
+    const result=await callClaude([{role:'user',content:'Generate lesson on: '+topic}],system);
+    wave.classList.remove('show');out.classList.add('show');
+    body.innerHTML=renderMd(result);
+    dot.className='sdot dot-done';status.textContent='COMPLETE';
+    saveHist('tutor','Lesson: '+topic,result);
+    if(document.getElementById('lessonNotion').checked){
+      try{await pushToNotion(getKey('agentNotionLessonsDb'),'Daily Lesson: '+topic,result);notionEl.textContent='✓ SAVED TO NOTION TRADING LESSONS';notionEl.classList.add('show');}
+      catch(e){notionEl.textContent='⚠ NOTION FAILED: '+e.message;notionEl.classList.add('show');}
     }
-  } catch(e) {
-    body.innerHTML = '⚠ Error: ' + e.message;
-    dot.className = 'status-dot dot-error';
-    status.textContent = 'Error';
+  }catch(e){
+    wave.classList.remove('show');out.classList.add('show');
+    body.innerHTML='⚠ '+e.message;dot.className='sdot dot-err';status.textContent='ERROR';
   }
-
-  btn.disabled = false;
-  btn.innerHTML = '<span>Generate Daily Lesson</span>';
+  btn.disabled=false;btn.innerHTML='<span>GENERATE DAILY LESSON</span>';
 }
 
-async function runAskTutor() {
-  const q      = document.getElementById('tutorQ').value.trim();
-  if (!q) return;
-  const btn    = document.getElementById('askBtn');
-  const output = document.getElementById('askOutput');
-  const body   = document.getElementById('askBody');
-  const dot    = document.getElementById('askDot');
-  const status = document.getElementById('askStatus');
-  const notionR= document.getElementById('askNotionResult');
-
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Thinking...';
-  output.classList.add('show');
-  notionR.classList.remove('show');
-  dot.className = 'status-dot dot-thinking';
-  status.textContent = 'Answering...';
-  body.innerHTML = '';
-
-  const system = `You are an expert FOREX trading tutor. Your student is a beginner-intermediate EUR/USD trader learning swing and scalp trading. They understand basic charts and a few strategies but are still developing consistency.
-
-Answer their question thoroughly and practically. Always:
-- Use clear, jargon-free language (explain terms when you use them)
-- Give specific EUR/USD examples where possible
-- Include a practical takeaway they can apply immediately
+async function runAsk(){
+  const q=document.getElementById('tutorQ').value.trim();if(!q)return;
+  const btn=document.getElementById('askBtn');
+  const wave=document.getElementById('askWave');
+  const out=document.getElementById('askOutput');
+  const body=document.getElementById('askBody');
+  const dot=document.getElementById('askDot');
+  const status=document.getElementById('askStatus');
+  const notionEl=document.getElementById('askNotion2');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> CONSULTING...';
+  wave.classList.add('show');out.classList.remove('show');notionEl.classList.remove('show');
+  try{
+    const system=`You are an expert FOREX trading tutor. Your student is a beginner-intermediate EUR/USD trader learning swing and scalp trading. Answer thoroughly and practically. Always:
+- Use clear jargon-free language
+- Give specific EUR/USD examples
+- Include a practical takeaway
 - End with a follow-up question to deepen their thinking`;
-
-  try {
-    const result = await callClaude([{
-      role: 'user',
-      content: q
-    }], system);
-
-    body.innerHTML = renderMd(result);
-    dot.className = 'status-dot dot-done';
-    status.textContent = 'Complete';
-    saveToHistory('tutor', q, result);
-
-    const dbId = getKey('agentNotionLessonsDb');
-    if (dbId) {
-      try {
-        await pushToNotion(dbId, 'Q&A: ' + q.slice(0,80), result, 'Q&A');
-        notionR.textContent = '✓ Saved to Notion Trading Lessons';
-        notionR.classList.add('show');
-      } catch(e) {
-        notionR.textContent = '⚠ Notion failed: ' + e.message;
-        notionR.classList.add('show');
-      }
+    const result=await callClaude([{role:'user',content:q}],system);
+    wave.classList.remove('show');out.classList.add('show');
+    body.innerHTML=renderMd(result);
+    dot.className='sdot dot-done';status.textContent='COMPLETE';
+    saveHist('tutor',q,result);
+    if(document.getElementById('askNotion').checked){
+      try{await pushToNotion(getKey('agentNotionLessonsDb'),'Q&A: '+q.slice(0,80),result);notionEl.textContent='✓ SAVED TO NOTION TRADING LESSONS';notionEl.classList.add('show');}
+      catch(e){notionEl.textContent='⚠ NOTION FAILED: '+e.message;notionEl.classList.add('show');}
     }
-  } catch(e) {
-    body.innerHTML = '⚠ Error: ' + e.message;
-    dot.className = 'status-dot dot-error';
-    status.textContent = 'Error';
+  }catch(e){
+    wave.classList.remove('show');out.classList.add('show');
+    body.innerHTML='⚠ '+e.message;dot.className='sdot dot-err';status.textContent='ERROR';
   }
-
-  btn.disabled = false;
-  btn.innerHTML = '<span>Ask Tutor</span>';
+  btn.disabled=false;btn.innerHTML='<span>ASK TUTOR</span>';
 }
+
+// ══════════════════════════════════════════════
+// OANDA MONITOR
+// ══════════════════════════════════════════════
+let monitorInterval=null,knownOpen={},knownClosed=new Set();
+
+async function oandaFetch(path){
+  const token=getKey('agentOandaToken'),accountId=getKey('agentOandaAccountId');
+  if(!token||!accountId)throw new Error('OANDA credentials not saved. Go to CONFIG.');
+  const res=await fetch('/.netlify/functions/oanda-proxy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,accountId,path})});
+  if(!res.ok)throw new Error('OANDA fetch failed');
+  return res.json();
+}
+
+async function initMonitor(){
+  setMonitorStatus('CONNECTING TO OANDA...');
+  try{
+    await pollOanda();
+    setMonitorStatus('LIVE · POLLING EVERY 5 MIN');
+    if(monitorInterval)clearInterval(monitorInterval);
+    monitorInterval=setInterval(pollOanda,5*60*1000);
+    document.getElementById('oandaStatus').textContent='LIVE';
+  }catch(e){
+    setMonitorStatus('⚠ '+e.message);
+    document.getElementById('oandaStatus').textContent='ERROR';
+    document.getElementById('oandaStatus').className='stat-val warn';
+  }
+}
+
+function setMonitorStatus(msg){const el=document.getElementById('monitorStatus');if(el)el.textContent=msg}
+
+async function pollOanda(){
+  const data=await oandaFetch('/openTrades');
+  const trades=data.trades||[];
+  document.getElementById('openTradeCount').textContent=trades.length;
+  for(const t of trades){
+    if(!knownOpen[t.id]){knownOpen[t.id]=t;await analyzeNew(t);}
+  }
+  const openIds=new Set(trades.map(t=>t.id));
+  for(const [id,t] of Object.entries(knownOpen)){
+    if(!openIds.has(id)&&!knownClosed.has(id)){knownClosed.add(id);delete knownOpen[id];await analyzeClosed(t);}
+  }
+  renderOpenTrades(trades);
+}
+
+function renderOpenTrades(trades){
+  const el=document.getElementById('openTradesList');if(!el)return;
+  if(!trades.length){el.innerHTML='<div class="no-hist">NO OPEN POSITIONS DETECTED ON OANDA DEMO.</div>';return}
+  el.innerHTML=trades.map(t=>{
+    const dir=parseInt(t.currentUnits)>0?'LONG':'SHORT';
+    const dc=dir==='LONG'?'#00ffaa':'#ff3a3a';
+    const pl=parseFloat(t.unrealizedPL||0).toFixed(2);
+    const pc=pl>=0?'#00ffaa':'#ff3a3a';
+    return`<div class="hist-item"><div><div class="h-q">${t.instrument} · <span style="color:${dc}">${dir}</span></div><div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#1a4060;margin-top:3px">ENTRY: ${parseFloat(t.price).toFixed(5)} · UNITS: ${Math.abs(t.currentUnits)}</div></div><div style="text-align:right"><div style="font-family:'Share Tech Mono',monospace;font-size:14px;color:${pc}">${pl>=0?'+':''}${pl}</div><div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#1a4060;margin-top:2px">UNREALIZED P&L</div></div></div>`;
+  }).join('');
+}
+
+async function analyzeNew(trade){
+  const dir=parseInt(trade.currentUnits)>0?'Long':'Short';
+  addLog(`🟢 NEW TRADE: ${trade.instrument} ${dir.toUpperCase()} · ${Math.abs(trade.currentUnits)} units @ ${parseFloat(trade.price).toFixed(5)} — RUNNING ANALYSIS...`);
+  try{
+    const sys=`You are an expert FOREX trading coach analyzing a paper trade for a beginner-intermediate EUR/USD trader. Format as:
+
+## Pre-Trade Analysis
+**Instrument:** | **Direction:** | **Entry:** | **Units:**
+
+## Setup Quality Checklist
+- [ ] Trend alignment
+- [ ] Key level proximity
+- [ ] Risk assessment
+- [ ] Session timing
+
+## What To Watch
+Key levels to monitor.
+
+## Suggested Stop Loss & Take Profit
+Based on EUR/USD price action.
+
+## Coaching Note
+One key lesson this trade teaches.`;
+    const result=await callClaude([{role:'user',content:`Analyze: ${trade.instrument} ${dir} @ ${trade.price}, ${Math.abs(trade.currentUnits)} units, ${new Date().toLocaleString()}`}],sys);
+    addLog(result);
+  }catch(e){addLog('⚠ Analysis failed: '+e.message)}
+}
+
+async function analyzeClosed(trade){
+  const dir=parseInt(trade.currentUnits)>0?'Long':'Short';
+  const pl=parseFloat(trade.unrealizedPL||0);
+  addLog(`🔴 TRADE CLOSED: ${trade.instrument} — RUNNING POST-TRADE BREAKDOWN...`);
+  try{
+    const sys=`You are an expert FOREX trading coach. Deliver a post-trade breakdown:
+
+## Post-Trade Breakdown
+**Instrument:** | **Direction:** | **Entry:** | **Result:**
+
+## What Went Right
+Specific positives.
+
+## What To Improve
+Honest critique.
+
+## Key Lesson
+Single most important takeaway.
+
+## Trade Score
+Grade A/B/C/D on execution quality (not outcome). Explain.`;
+    const result=await callClaude([{role:'user',content:`Closed trade: ${trade.instrument} ${dir} @ ${trade.price}, P&L: ${pl}, opened: ${new Date(trade.openTime).toLocaleString()}, closed: ${new Date().toLocaleString()}`}],sys);
+    addLog(result);
+    try{
+      const closeDate=new Date().toLocaleDateString('en-US');
+      const sheetRes=await fetch('/.netlify/functions/sheets-proxy',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({tradeData:{symbol:trade.instrument,date:closeDate,direction:dir,entryPrice:parseFloat(trade.price).toFixed(5),closePrice:'',winLoss:pl>=0?'Win':'Loss',size:Math.abs(parseInt(trade.currentUnits)),fee:0,profit:pl.toFixed(2)}})
+      });
+      const sd=await sheetRes.json();
+      if(sd.success)addLog(`✓ TRADE LOGGED TO GOOGLE SHEETS (ROW ${sd.row})`);
+      else addLog('⚠ SHEETS LOG FAILED: '+(sd.error||'unknown'));
+    }catch(e){addLog('⚠ SHEETS ERROR: '+e.message)}
+  }catch(e){addLog('⚠ Breakdown failed: '+e.message)}
+}
+
+function addLog(text){
+  const el=document.getElementById('tradeLogBody');if(!el)return;
+  const div=document.createElement('div');
+  div.className='trade-log-entry';
+  div.innerHTML=renderMd(text);
+  if(el.firstChild&&el.firstChild.className==='no-hist')el.innerHTML='';
+  el.prepend(div);
+}
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+function copyOut(id){navigator.clipboard.writeText(document.getElementById(id).innerText)}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+loadKeys();
 </script>
-
-  <!-- ══ TUTOR PANEL ══ -->
-  <div class="panel" id="panel-tutor">
-    <!-- Daily Lesson -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-icon icon-research" style="background:rgba(245,166,35,.1)">🎓</div>
-        <div>
-          <div class="card-title">Daily Trading Lesson</div>
-          <div class="card-sub">#13 · Structured lesson + quiz → Notion Trading Lessons</div>
-        </div>
-      </div>
-      <p style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:16px">
-        Generate a new lesson covering TA, price action, or fundamentals — with a quiz at the end.
-      </p>
-      <div class="row">
-        <button class="run-btn btn-research" id="lessonBtn" onclick="runDailyLesson()" style="background:var(--amber);color:var(--bg)">
-          <span>Generate Daily Lesson</span>
-        </button>
-        <label class="notion-toggle">
-          <input type="checkbox" id="lessonNotion" checked/>
-          Save to Notion
-        </label>
-      </div>
-      <div class="output" id="lessonOutput">
-        <div class="output-bar">
-          <span><span class="status-dot" id="lessonDot"></span><span id="lessonStatus"></span></span>
-          <button class="copy-btn" onclick="copyOutput('lessonBody')">Copy</button>
-        </div>
-        <div class="output-body" id="lessonBody"></div>
-        <div class="notion-result" id="lessonNotionResult"></div>
-      </div>
-    </div>
-
-    <!-- Ask Anything -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-icon" style="background:rgba(245,166,35,.1)">💬</div>
-        <div>
-          <div class="card-title">Ask The Tutor</div>
-          <div class="card-sub">#13 · Any trading question → in-depth answer → Notion</div>
-        </div>
-      </div>
-      <textarea id="tutorQ" rows="3" placeholder="e.g. What's the difference between scalping and swing trading EUR/USD?"></textarea>
-      <div class="row">
-        <button class="run-btn" id="askBtn" onclick="runAskTutor()" style="background:var(--amber);color:var(--bg)">
-          <span>Ask Tutor</span>
-        </button>
-        <label class="notion-toggle">
-          <input type="checkbox" id="askNotion" checked/>
-          Save to Notion
-        </label>
-      </div>
-      <div class="output" id="askOutput">
-        <div class="output-bar">
-          <span><span class="status-dot" id="askDot"></span><span id="askStatus"></span></span>
-          <button class="copy-btn" onclick="copyOutput('askBody')">Copy</button>
-        </div>
-        <div class="output-body" id="askBody"></div>
-        <div class="notion-result" id="askNotionResult"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ TRADES PANEL ══ -->
-  <div class="panel" id="panel-trades">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-icon" style="background:rgba(0,229,160,.1)">📊</div>
-        <div>
-          <div class="card-title">Trade Analyzer · OANDA Demo</div>
-          <div class="card-sub">#2 · Auto-detects trades → pre-trade checklist + post-trade breakdown → Notion</div>
-        </div>
-      </div>
-
-      <!-- Monitor status -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <div style="font-family:var(--mono);font-size:12px;color:var(--muted)">
-          <span class="status-dot dot-thinking" style="display:inline-block;margin-right:6px"></span>
-          <span id="monitorStatus">Click the Trades tab to connect</span>
-        </div>
-        <button class="copy-btn" onclick="initTradeMonitor()" style="color:var(--accent);border-color:var(--accent)">↺ Reconnect</button>
-      </div>
-
-      <!-- Open trades -->
-      <div style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">
-        Open Positions
-      </div>
-      <div id="openTradesList">
-        <div class="no-history">Connecting to OANDA...</div>
-      </div>
-    </div>
-
-    <!-- Trade analysis log -->
-    <div class="card" style="margin-top:20px">
-      <div class="card-header">
-        <div class="card-icon" style="background:rgba(0,229,160,.1)">📝</div>
-        <div>
-          <div class="card-title">Analysis Log</div>
-          <div class="card-sub">Auto-generated pre & post trade breakdowns</div>
-        </div>
-      </div>
-      <div id="tradeLogBody" style="max-height:500px;overflow-y:auto;font-family:var(--mono);font-size:13px;line-height:1.7">
-        <div class="no-history">Analysis will appear here automatically when trades are detected.</div>
-      </div>
-    </div>
-  </div>
-
 </body>
 </html>
